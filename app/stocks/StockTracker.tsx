@@ -467,12 +467,13 @@ export default function StockTracker() {
                             {user && (
                               <button
                                 onClick={() => setAlertPanelTickerId(ticker.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-amber-400 p-1 rounded relative"
+                                className={`p-1 rounded transition-all ${
+                                  ticker.hasAlert
+                                    ? "text-amber-400"
+                                    : "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400"
+                                }`}
                               >
-                                <Bell className="w-4 h-4" />
-                                {ticker.hasAlert && (
-                                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                                )}
+                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
                               </button>
                             )}
                           </td>
@@ -536,26 +537,26 @@ export default function StockTracker() {
             </div>
           )}
 
-          {/* Sort selector */}
+          {/* Sort selector — compact dropdown */}
           <div className="mb-4 flex items-center gap-2">
-            <span className="text-xs text-slate-500 flex-shrink-0">Sort:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {COLUMNS.map((col) => (
-                <button
-                  key={col.key}
-                  onClick={() => handleSort(col.key)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    sortKey === col.key
-                      ? "bg-slate-700 border-slate-600 text-white font-medium"
-                      : "border-slate-700 text-slate-500 hover:text-slate-300"
-                  }`}
-                >
-                  {col.label}
-                  {sortKey === col.key && (
-                    <span className="ml-1 opacity-60">{sortDir === "asc" ? "↑" : "↓"}</span>
-                  )}
-                </button>
-              ))}
+            <span className="text-xs text-slate-500 flex-shrink-0">Sort by</span>
+            <div className="relative flex-1">
+              <select
+                value={`${sortKey}:${sortDir}`}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split(":") as [SortKey, SortDir];
+                  setSortKey(key);
+                  setSortDir(dir);
+                  localStorage.setItem("dash-sort", JSON.stringify({ key, dir }));
+                }}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg pl-3 pr-8 py-1.5 appearance-none focus:outline-none focus:border-slate-500"
+              >
+                {COLUMNS.flatMap((col) => [
+                  <option key={`${col.key}:asc`} value={`${col.key}:asc`}>{col.label} ↑</option>,
+                  <option key={`${col.key}:desc`} value={`${col.key}:desc`}>{col.label} ↓</option>,
+                ])}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
             </div>
           </div>
 
@@ -582,16 +583,17 @@ export default function StockTracker() {
                         {/* Row 1: 🔔 · Ticker · spacer · Price  Change% · [trash] */}
                         <div className="flex items-center gap-2">
                           {/* Bell — always visible; clickable only when authed */}
-                          <div className="flex-shrink-0 relative">
+                          <div className="flex-shrink-0">
                             {user ? (
                               <button
                                 onClick={() => setAlertPanelTickerId(ticker.id)}
-                                className="flex items-center justify-center w-7 h-7 text-slate-500 hover:text-amber-400 active:text-amber-300 transition-colors"
+                                className={`flex items-center justify-center w-7 h-7 transition-colors ${
+                                  ticker.hasAlert
+                                    ? "text-amber-400"
+                                    : "text-slate-500 hover:text-amber-400 active:text-amber-300"
+                                }`}
                               >
-                                <Bell className="w-4 h-4" />
-                                {ticker.hasAlert && (
-                                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                                )}
+                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
                               </button>
                             ) : (
                               <span className="flex items-center justify-center w-7 h-7 text-slate-600">

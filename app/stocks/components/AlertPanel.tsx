@@ -52,6 +52,7 @@ function AlertRow({
   const [promoting, setPromoting] = useState(false);
 
   async function handleDelete() {
+    if (!confirm("¿Eliminar esta alerta?")) return;
     setDeleting(true);
     await fetch(`/api/alerts/${alert.id}`, { method: "DELETE" });
     onDelete(alert.id);
@@ -71,7 +72,7 @@ function AlertRow({
   }
 
   return (
-    <div className="flex items-center gap-3 py-2.5 group">
+    <div className="flex items-center gap-3 py-2.5">
       {/* Star / display target */}
       <button
         onClick={handleSetDisplay}
@@ -122,7 +123,7 @@ function AlertRow({
       <button
         onClick={handleDelete}
         disabled={deleting}
-        className="flex-shrink-0 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+        className="flex-shrink-0 text-red-500/40 hover:text-red-400 transition-colors"
       >
         {deleting ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
