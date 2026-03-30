@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, Flag, BarChart3, ChevronRight } from "lucide-react";
+import { TrendingUp, Flag, BarChart3, ChevronRight, Zap } from "lucide-react";
 
 const modules = [
   {
@@ -39,14 +39,21 @@ const modules = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 py-16">
+    <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-start px-4 pt-16 pb-10 sm:pt-20">
       {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 mb-6">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-blue-500" />
+      <div className="text-center mb-10">
+        {/* Lightning bolt logo */}
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5 relative">
+          {/* Outer glow ring */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-300 opacity-20 blur-md scale-110" />
+          {/* Gradient circle */}
+          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <Zap className="w-8 h-8 text-white fill-white drop-shadow-sm" strokeWidth={2.5} />
+          </div>
         </div>
+
         <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-          Personal Dashboard
+          JD Dashboard
         </h1>
         <p className="mt-2 text-slate-400 text-base sm:text-lg">
           Your tools. Your data. Your pace.
@@ -113,8 +120,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <p className="mt-12 text-slate-600 text-xs">
-        Personal Dashboard 2.0 — Phase 1
+      <p className="mt-10 text-slate-600 text-xs">
+        JD Dashboard 2.0 — Phase 1
       </p>
     </main>
   );
