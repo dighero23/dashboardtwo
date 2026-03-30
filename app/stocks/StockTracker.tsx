@@ -558,83 +558,111 @@ export default function StockTracker() {
           </div>
 
           {/* Cards */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
               : sorted.map((ticker) => {
                   const badge = earningsBadge(ticker.earningsDays);
                   const proxColor = proximityColor(ticker.targetPct);
+
+                  // Secondary data items — only render what exists
+                  const secondaryItems: React.ReactNode[] = [];
+                  if (ticker.targetPrice !== null) {
+                    secondaryItems.push(
+                      <span key="target" className="text-slate-400">
+                        Target: <span className="text-slate-200 font-mono">${formatPrice(ticker.targetPrice)}</span>
+                      </span>
+                    );
+                    secondaryItems.push(
+                      <span key="vs-target" className={`font-mono ${pctColor(ticker.targetPct)}`}>
+                        {formatPct(ticker.targetPct, true)}
+                      </span>
+                    );
+                  }
+                  if (badge) {
+                    secondaryItems.push(
+                      <span
+                        key="er"
+                        className={badge.urgent ? "text-red-400 font-medium" : "text-slate-400"}
+                      >
+                        {badge.text}
+                      </span>
+                    );
+                  }
+
                   return (
                     <div
                       key={ticker.id}
                       className="relative rounded-xl bg-slate-800/50 border border-slate-700/60 overflow-hidden"
                     >
+                      {/* Proximity left border */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${proxColor}`} />
-                      <div className="pl-4 pr-3 py-3.5">
-                        {/* Line 1: symbol + price + bell */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <span className="font-bold text-white text-base leading-none">{ticker.symbol}</span>
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">{ticker.name}</p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-semibold text-white font-mono text-sm">${formatPrice(ticker.price)}</p>
-                            <p className={`text-xs font-mono mt-0.5 ${pctColor(ticker.changePct)}`}>
-                              {formatPct(ticker.changePct, true)}
-                            </p>
-                          </div>
-                          {user && (
-                            <button
-                              onClick={() => setAlertPanelTickerId(ticker.id)}
-                              className="flex-shrink-0 text-slate-500 hover:text-amber-400 transition-colors p-1 -mr-1 -mt-0.5 relative"
-                            >
-                              <Bell className="w-4 h-4" />
-                              {ticker.hasAlert && (
-                                <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                              )}
-                            </button>
-                          )}
-                        </div>
 
-                        {/* Line 2: ATH / Target / vs Target */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs">
-                          <span className="text-slate-500">
-                            vs ATH: <span className={pctColor(ticker.athPct)}>{formatPct(ticker.athPct, true)}</span>
+                      <div className="pl-4 pr-3 py-3">
+                        {/* Row 1: bell · ticker · [price + change%] */}
+                        <div className="flex items-center gap-2.5">
+                          {/* Bell — always present, invisible placeholder when not authed */}
+                          <div className="flex-shrink-0 w-7 flex items-center justify-center">
+                            {user ? (
+                              <button
+                                onClick={() => setAlertPanelTickerId(ticker.id)}
+                                className="relative text-slate-500 hover:text-amber-400 active:text-amber-300 transition-colors p-0.5"
+                              >
+                                <Bell className="w-4 h-4" />
+                                {ticker.hasAlert && (
+                                  <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="w-4 h-4" />
+                            )}
+                          </div>
+
+                          {/* Ticker symbol */}
+                          <span className="font-bold text-white text-base leading-none tracking-wide">
+                            {ticker.symbol}
                           </span>
-                          {ticker.targetPrice !== null && (
-                            <>
-                              <span className="text-slate-700">·</span>
-                              <span className="text-slate-500">
-                                Target: <span className="text-slate-300 font-mono">${formatPrice(ticker.targetPrice)}</span>
-                              </span>
-                              <span className="text-slate-700">·</span>
-                              <span className="text-slate-500">
-                                vs Target: <span className={pctColor(ticker.targetPct)}>{formatPct(ticker.targetPct, true)}</span>
-                              </span>
-                            </>
-                          )}
-                        </div>
 
-                        {/* Line 3: earnings + delete */}
-                        <div className="flex items-center justify-between mt-2">
-                          {badge ? (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                              badge.urgent
-                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                : "bg-slate-700/80 text-slate-400"
-                            }`}>
-                              {badge.text}
+                          {/* Spacer */}
+                          <div className="flex-1" />
+
+                          {/* Price + Change% */}
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-semibold text-white font-mono text-sm">
+                              ${formatPrice(ticker.price)}
                             </span>
-                          ) : <span />}
+                            <span className={`ml-2 text-xs font-mono ${pctColor(ticker.changePct)}`}>
+                              {formatPct(ticker.changePct, true)}
+                            </span>
+                          </div>
+
+                          {/* Delete (auth only) */}
                           {user && (
                             <button
                               onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
-                              className="text-slate-600 hover:text-red-400 transition-colors p-1"
+                              className="flex-shrink-0 text-slate-700 hover:text-red-400 active:text-red-300 transition-colors p-0.5 ml-1"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
+
+                        {/* Row 2: company name */}
+                        <p className="text-xs text-slate-500 mt-1 ml-9 truncate leading-none">
+                          {ticker.name}
+                        </p>
+
+                        {/* Row 3: secondary data — only if anything to show */}
+                        {secondaryItems.length > 0 && (
+                          <div className="flex items-center gap-0 mt-2 ml-9 text-xs">
+                            {secondaryItems.map((item, i) => (
+                              <span key={i} className="flex items-center">
+                                {i > 0 && <span className="mx-1.5 text-slate-700">·</span>}
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
