@@ -564,31 +564,7 @@ export default function StockTracker() {
               : sorted.map((ticker) => {
                   const badge = earningsBadge(ticker.earningsDays);
                   const proxColor = proximityColor(ticker.targetPct);
-
-                  // Secondary data items — only render what exists
-                  const secondaryItems: React.ReactNode[] = [];
-                  if (ticker.targetPrice !== null) {
-                    secondaryItems.push(
-                      <span key="target" className="text-slate-400">
-                        Target: <span className="text-slate-200 font-mono">${formatPrice(ticker.targetPrice)}</span>
-                      </span>
-                    );
-                    secondaryItems.push(
-                      <span key="vs-target" className={`font-mono ${pctColor(ticker.targetPct)}`}>
-                        {formatPct(ticker.targetPct, true)}
-                      </span>
-                    );
-                  }
-                  if (badge) {
-                    secondaryItems.push(
-                      <span
-                        key="er"
-                        className={badge.urgent ? "text-red-400 font-medium" : "text-slate-400"}
-                      >
-                        {badge.text}
-                      </span>
-                    );
-                  }
+                  const hasSecondary = ticker.targetPrice !== null || badge !== null;
 
                   return (
                     <div
@@ -598,23 +574,27 @@ export default function StockTracker() {
                       {/* Proximity left border */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${proxColor}`} />
 
-                      <div className="pl-4 pr-3 py-3">
-                        {/* Row 1: bell · ticker · [price + change%] */}
-                        <div className="flex items-center gap-2.5">
-                          {/* Bell — always present, invisible placeholder when not authed */}
-                          <div className="flex-shrink-0 w-7 flex items-center justify-center">
+                      {/* pl-2 keeps bell close to border, pr-3 standard right padding */}
+                      <div className="pl-2 pr-3 py-3">
+
+                        {/* Row 1: 🔔 · Ticker · spacer · Price  Change% · [trash] */}
+                        <div className="flex items-center gap-2">
+                          {/* Bell — always visible; clickable only when authed */}
+                          <div className="flex-shrink-0 relative">
                             {user ? (
                               <button
                                 onClick={() => setAlertPanelTickerId(ticker.id)}
-                                className="relative text-slate-500 hover:text-amber-400 active:text-amber-300 transition-colors p-0.5"
+                                className="flex items-center justify-center w-7 h-7 text-slate-500 hover:text-amber-400 active:text-amber-300 transition-colors"
                               >
                                 <Bell className="w-4 h-4" />
                                 {ticker.hasAlert && (
-                                  <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
                                 )}
                               </button>
                             ) : (
-                              <span className="w-4 h-4" />
+                              <span className="flex items-center justify-center w-7 h-7 text-slate-600">
+                                <Bell className="w-4 h-4" />
+                              </span>
                             )}
                           </div>
 
@@ -623,44 +603,62 @@ export default function StockTracker() {
                             {ticker.symbol}
                           </span>
 
-                          {/* Spacer */}
                           <div className="flex-1" />
 
-                          {/* Price + Change% */}
-                          <div className="text-right flex-shrink-0">
-                            <span className="font-semibold text-white font-mono text-sm">
-                              ${formatPrice(ticker.price)}
-                            </span>
-                            <span className={`ml-2 text-xs font-mono ${pctColor(ticker.changePct)}`}>
-                              {formatPct(ticker.changePct, true)}
-                            </span>
-                          </div>
+                          {/* Price + Change% on one line */}
+                          <span className="font-semibold text-white font-mono text-sm flex-shrink-0">
+                            ${formatPrice(ticker.price)}
+                          </span>
+                          <span className={`text-xs font-mono flex-shrink-0 ${pctColor(ticker.changePct)}`}>
+                            {formatPct(ticker.changePct, true)}
+                          </span>
 
-                          {/* Delete (auth only) */}
+                          {/* Delete — auth only */}
                           {user && (
                             <button
                               onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
-                              className="flex-shrink-0 text-slate-700 hover:text-red-400 active:text-red-300 transition-colors p-0.5 ml-1"
+                              className="flex-shrink-0 text-slate-700 hover:text-red-400 transition-colors ml-0.5"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
 
-                        {/* Row 2: company name */}
-                        <p className="text-xs text-slate-500 mt-1 ml-9 truncate leading-none">
+                        {/* Row 2: company name, indented to align with ticker */}
+                        <p className="text-xs text-slate-500 mt-0.5 pl-9 truncate leading-none">
                           {ticker.name}
                         </p>
 
-                        {/* Row 3: secondary data — only if anything to show */}
-                        {secondaryItems.length > 0 && (
-                          <div className="flex items-center gap-0 mt-2 ml-9 text-xs">
-                            {secondaryItems.map((item, i) => (
-                              <span key={i} className="flex items-center">
-                                {i > 0 && <span className="mx-1.5 text-slate-700">·</span>}
-                                {item}
-                              </span>
-                            ))}
+                        {/* Row 3: Target · vs Target · ER — dot-separated, same size */}
+                        {hasSecondary && (
+                          <div className="flex items-center mt-2 pl-9 text-xs text-slate-400 gap-0">
+                            {ticker.targetPrice !== null && (
+                              <>
+                                <span>
+                                  Target:{" "}
+                                  <span className="text-slate-200 font-mono">
+                                    ${formatPrice(ticker.targetPrice)}
+                                  </span>
+                                </span>
+                                <span className="mx-1.5 text-slate-700">·</span>
+                                <span>
+                                  vs Target:{" "}
+                                  <span className={`font-mono ${pctColor(ticker.targetPct)}`}>
+                                    {formatPct(ticker.targetPct, true)}
+                                  </span>
+                                </span>
+                              </>
+                            )}
+                            {badge && (
+                              <>
+                                {ticker.targetPrice !== null && (
+                                  <span className="mx-1.5 text-slate-700">·</span>
+                                )}
+                                <span className={badge.urgent ? "text-red-400 font-medium" : ""}>
+                                  {badge.text}
+                                </span>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
