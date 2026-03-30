@@ -519,7 +519,7 @@ export default function StockTracker() {
         <div className="md:hidden">
           {/* Mobile action bar (auth) */}
           {user && !loading && (
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
               <button
                 onClick={() => setShowAddTicker(true)}
                 className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 rounded-lg px-3 py-1.5 transition-colors"
@@ -534,6 +534,7 @@ export default function StockTracker() {
                 <Bell className="w-3.5 h-3.5" />
                 Alerts
               </button>
+              <PushSubscribeButton mobile />
             </div>
           )}
 

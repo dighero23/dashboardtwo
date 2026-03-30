@@ -51,11 +51,10 @@ export async function DELETE(req: NextRequest) {
   const endpoint = body?.endpoint as string | undefined;
 
   const db = createAdminClient();
-  const query = db.from("push_subscriptions").delete().eq("user_id", user.id);
   if (endpoint) {
-    await query.eq("endpoint", endpoint);
+    await db.from("push_subscriptions").delete().eq("user_id", user.id).eq("endpoint", endpoint);
   } else {
-    await query;
+    await db.from("push_subscriptions").delete().eq("user_id", user.id);
   }
 
   return NextResponse.json({ ok: true });

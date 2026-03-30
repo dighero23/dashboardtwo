@@ -9,7 +9,7 @@ import { sendPush } from "@/lib/webpush";
 // 3. Compare prices vs alert targets → trigger + send push notification
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && secret !== "your_random_secret_here") {
+  if (secret) {
     const auth = req.headers.get("authorization");
     if (auth !== `Bearer ${secret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,10 +53,17 @@ export async function GET(req: NextRequest) {
 
       // Trigger if within 2% of target
       if (absDiff <= 2) {
-        // Midnight EST for cooldown
-        const midnight = new Date();
-        midnight.setUTCHours(5, 0, 0, 0); // 00:00 EST = 05:00 UTC
-        if (midnight <= new Date()) midnight.setUTCDate(midnight.getUTCDate() + 1);
+        // Midnight America/New_York for cooldown — handles EST/EDT automatically
+        const now = new Date();
+        // NY wall-clock time as a plain Date (wrong absolute value, right local digits)
+        const nyNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        // ms to add to NY local time to get UTC (positive in winter, positive in summer, different values)
+        const nyOffsetMs = now.getTime() - nyNow.getTime();
+        // Roll to tomorrow midnight in NY local time
+        const tomorrowNYLocal = new Date(nyNow);
+        tomorrowNYLocal.setDate(tomorrowNYLocal.getDate() + 1);
+        tomorrowNYLocal.setHours(0, 0, 0, 0);
+        const midnight = new Date(tomorrowNYLocal.getTime() + nyOffsetMs);
 
         await db
           .from("alerts")

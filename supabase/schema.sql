@@ -55,6 +55,10 @@ create index if not exists alerts_ticker_id_idx on public.alerts(ticker_id);
 create index if not exists alerts_user_id_idx   on public.alerts(user_id);
 create index if not exists alerts_status_idx    on public.alerts(status);
 
+-- Prevent duplicate push subscriptions for the same device+user
+create unique index if not exists push_subs_user_endpoint_idx
+  on public.push_subscriptions(user_id, endpoint);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- ─────────────────────────────────────────────────────────────────────────────
