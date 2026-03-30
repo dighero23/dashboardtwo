@@ -8,11 +8,13 @@ import {
   Trash2,
   Loader2,
   Bell,
+  BellRing,
   ChevronDown,
   ChevronUp,
   Check,
 } from "lucide-react";
 import type { TickerData, AlertData } from "@/lib/buildTickerData";
+import { usePushSubscription } from "../hooks/usePushSubscription";
 
 interface Props {
   tickers: TickerData[];
@@ -207,10 +209,12 @@ function TickerSection({
   ticker,
   onChanged,
   defaultOpen,
+  onAlertCreated,
 }: {
   ticker: TickerData;
   onChanged: () => void;
   defaultOpen: boolean;
+  onAlertCreated: () => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [alerts, setAlerts] = useState<AlertData[]>(ticker.alerts);
@@ -282,6 +286,7 @@ function TickerSection({
     setAddPrice("");
     setAddComment("");
     onChanged();
+    onAlertCreated();
   }
 
   return (
@@ -410,6 +415,9 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const { promptState, trySubscribeAfterAlert, confirmSubscribe, dismissBanner } = usePushSubscription();
+  const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   // If opened from a specific ticker's bell → go straight to add form
   useEffect(() => {
     if (initialTickerId) setMode("add");
@@ -434,6 +442,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
       setForm((f) => ({ ...f, targetPrice: "", comment: "" }));
       setMode("list");
       onChanged();
+      trySubscribeAfterAlert();
     } else {
       const json = await res.json();
       setSaveError(json.error ?? "Failed to create alert");
@@ -533,6 +542,54 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
 
       {/* Ticker sections */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+
+        {/* Push notification prompt — shown after alert creation */}
+        {promptState === "show-banner" && (
+          <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-3">
+            <BellRing className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-slate-200 font-medium leading-snug">¿Recibir notificaciones?</p>
+              <p className="text-xs text-slate-400 mt-0.5">Te avisamos cuando el precio llegue al objetivo.</p>
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  onClick={confirmSubscribe}
+                  className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  Activar
+                </button>
+                <button
+                  onClick={dismissBanner}
+                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  Ahora no
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {promptState === "subscribing" && (
+          <div className="flex items-center gap-2 text-xs text-slate-400 px-1">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+            Activando notificaciones…
+          </div>
+        )}
+
+        {promptState === "done" && (
+          <div className="flex items-center gap-2 text-xs text-emerald-400 px-1">
+            <Check className="w-3.5 h-3.5" />
+            Notificaciones activadas
+          </div>
+        )}
+
+        {promptState === "denied" && (
+          <div className="text-xs text-slate-500 bg-slate-800/50 border border-slate-700/40 rounded-lg px-3 py-2">
+            {isIOS
+              ? "Para notificaciones en iOS, instalá la app en la pantalla de inicio y habilitá los permisos en Configuración."
+              : "Notificaciones bloqueadas. Habilitá los permisos en la configuración de tu navegador."}
+          </div>
+        )}
+
         {tickers.length === 0 && (
           <p className="text-xs text-slate-600 text-center py-8">No tickers in watchlist.</p>
         )}
@@ -542,6 +599,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
             ticker={ticker}
             onChanged={onChanged}
             defaultOpen={ticker.id === initialTickerId || tickers.length === 1}
+            onAlertCreated={trySubscribeAfterAlert}
           />
         ))}
       </div>
