@@ -9,6 +9,15 @@ export type PushPromptState =
   | "done"
   | "denied";
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}
+
 async function registerAndSubscribePush(): Promise<void> {
   const reg = await navigator.serviceWorker.register("/sw.js", {
     scope: "/",
@@ -21,7 +30,10 @@ async function registerAndSubscribePush(): Promise<void> {
 
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    // Cast needed: TS types lag behind spec — Uint8Array is valid per W3C
+    applicationServerKey: urlBase64ToUint8Array(
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+    ) as unknown as ArrayBuffer,
   });
 
   const json = sub.toJSON();
@@ -37,9 +49,14 @@ export function usePushSubscription() {
 
   async function trySubscribeAfterAlert() {
     // Not supported in non-PWA iOS browsers and old browsers
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) return;
 
-    const permission = Notification.permission;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const permission: NotificationPermission = (window as any).Notification.permission;
 
     if (permission === "denied") {
       setPromptState("denied");
@@ -65,7 +82,8 @@ export function usePushSubscription() {
   async function confirmSubscribe() {
     setPromptState("subscribing");
     try {
-      const permission = await Notification.requestPermission();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const permission = await (window as any).Notification.requestPermission();
       if (permission === "denied") {
         setPromptState("denied");
         return;
