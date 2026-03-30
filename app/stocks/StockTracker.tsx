@@ -205,6 +205,12 @@ export default function StockTracker() {
 
   useEffect(() => { loadTickers(); }, [loadTickers]);
 
+  // ── Auto-refresh every 60s (silent background poll) ─────────────────────────
+  useEffect(() => {
+    const id = setInterval(loadTickers, 60_000);
+    return () => clearInterval(id);
+  }, [loadTickers]);
+
   // ── Clock ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
