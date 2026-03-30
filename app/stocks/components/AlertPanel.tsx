@@ -173,7 +173,7 @@ function EditForm({
           type="number"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-slate-400"
+          className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-[16px] text-white font-mono focus:outline-none focus:border-slate-400"
           placeholder="Target price"
           step="0.01"
           min="0"
@@ -182,7 +182,7 @@ function EditForm({
           type="text"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-slate-400"
+          className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-[16px] text-white focus:outline-none focus:border-slate-400"
           placeholder="Comment (optional)"
           maxLength={100}
         />
@@ -353,7 +353,7 @@ function TickerSection({
                   value={addPrice}
                   onChange={(e) => setAddPrice(e.target.value)}
                   autoFocus
-                  className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-slate-400"
+                  className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-[16px] text-white font-mono focus:outline-none focus:border-slate-400"
                   placeholder="Target price"
                   step="0.01"
                   min="0"
@@ -362,7 +362,7 @@ function TickerSection({
                   type="text"
                   value={addComment}
                   onChange={(e) => setAddComment(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-slate-400"
+                  className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-[16px] text-white focus:outline-none focus:border-slate-400"
                   placeholder="Comment (optional)"
                   maxLength={100}
                 />
@@ -501,7 +501,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
                 autoFocus
                 step="0.01"
                 min="0"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-slate-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-[16px] text-white font-mono focus:outline-none focus:border-slate-500"
                 placeholder="150.00"
               />
             </div>
@@ -512,7 +512,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
                 value={form.comment}
                 onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))}
                 maxLength={100}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-[16px] text-white focus:outline-none focus:border-slate-500"
                 placeholder="Buen punto para DCA"
               />
             </div>
