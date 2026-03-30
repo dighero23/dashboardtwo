@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAndCachePrices } from "@/lib/buildTickerData";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/webpush";
 
 // GET /api/check-alerts — cron target (cron-job.org, every 1 min)
 // 1. Fetch fresh prices → write to price_cache
 // 2. Reset alerts whose cooldown_until has passed
-// 3. Compare prices vs alert targets → trigger + push (push added in Phase 1d)
+// 3. Compare prices vs alert targets → trigger + send push notification
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret && secret !== "your_random_secret_here") {
@@ -37,8 +38,9 @@ export async function GET(req: NextRequest) {
       .select("id, ticker_id, target_price, comment, user_id")
       .eq("status", "active");
 
-    // 4. Build price map by ticker_id
+    // 4. Build price + symbol maps by ticker_id
     const priceById = new Map(data.tickers.map((t) => [t.id, t.price]));
+    const symbolById = new Map(data.tickers.map((t) => [t.id, t.symbol]));
 
     const triggered: string[] = [];
 
@@ -46,10 +48,11 @@ export async function GET(req: NextRequest) {
       const price = priceById.get(alert.ticker_id);
       if (price === undefined || price === 0) continue;
 
-      const diff = Math.abs(((price - alert.target_price) / alert.target_price) * 100);
+      const pctDiff = ((price - alert.target_price) / alert.target_price) * 100;
+      const absDiff = Math.abs(pctDiff);
 
-      // Trigger if within 2% of target (Phase 1d will send push notifications here)
-      if (diff <= 2) {
+      // Trigger if within 2% of target
+      if (absDiff <= 2) {
         // Midnight EST for cooldown
         const midnight = new Date();
         midnight.setUTCHours(5, 0, 0, 0); // 00:00 EST = 05:00 UTC
@@ -66,10 +69,33 @@ export async function GET(req: NextRequest) {
 
         triggered.push(alert.id);
 
-        // TODO Phase 1d: send push notification here
+        const symbol = symbolById.get(alert.ticker_id) ?? "Unknown";
+        const direction = pctDiff >= 0 ? "above" : "below";
+        const sign = pctDiff >= 0 ? "+" : "";
+
         console.log(
-          `[check-alerts] TRIGGERED alert ${alert.id} — price $${price} vs target $${alert.target_price}`
+          `[check-alerts] TRIGGERED alert ${alert.id} — ${symbol} $${price} vs target $${alert.target_price}`
         );
+
+        // Send push notification to all subscriptions for this user
+        const { data: subs } = await db
+          .from("push_subscriptions")
+          .select("id, endpoint, keys_p256dh, keys_auth")
+          .eq("user_id", alert.user_id);
+
+        for (const sub of subs ?? []) {
+          const ok = await sendPush(sub, {
+            title: `🔔 ${symbol} near target`,
+            body: `$${price.toFixed(2)} — ${sign}${pctDiff.toFixed(1)}% ${direction} target $${alert.target_price.toFixed(2)}${alert.comment ? ` · ${alert.comment}` : ""}`,
+            tag: `alert-${alert.id}`,
+            url: "/stocks",
+          });
+
+          // Subscription expired — remove it
+          if (!ok) {
+            await db.from("push_subscriptions").delete().eq("id", sub.id);
+          }
+        }
       }
     }
 

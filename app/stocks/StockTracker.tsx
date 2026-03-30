@@ -22,6 +22,7 @@ import type { User } from "@supabase/supabase-js";
 import LoginModal from "./components/LoginModal";
 import AddTickerModal from "./components/AddTickerModal";
 import AlertPanel from "./components/AlertPanel";
+import PushSubscribeButton from "./components/PushSubscribeButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -300,6 +301,7 @@ export default function StockTracker() {
                   <Bell className="w-3.5 h-3.5" />
                   Alerts
                 </button>
+                <PushSubscribeButton />
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors border border-slate-700 rounded-lg px-3 py-1.5"
