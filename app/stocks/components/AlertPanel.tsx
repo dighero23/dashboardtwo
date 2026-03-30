@@ -451,7 +451,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
 
   // Panel content
   const panelContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -627,7 +627,7 @@ export default function AlertPanel({ tickers, initialTickerId, onClose, onChange
       {/* Mobile: full-screen bottom sheet */}
       <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end">
         <div className="flex-1 bg-black/40" onClick={onClose} />
-        <div className="bg-slate-900 border-t border-slate-800 rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="bg-slate-900 border-t border-slate-800 rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1 bg-slate-700 rounded-full" />
