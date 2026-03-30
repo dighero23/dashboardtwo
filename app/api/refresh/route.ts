@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
-import { buildTickerData } from "@/lib/buildTickerData";
+import { fetchAndCachePrices } from "@/lib/buildTickerData";
 
-// POST /api/refresh
-// Invalidates the prices cache and returns fresh data.
-// The 60s throttle is enforced on the client side.
+// POST /api/refresh — public, throttled client-side (60s)
+// Fetches fresh prices from Yahoo Finance, writes to price_cache, returns data
 export async function POST() {
   try {
-    // Bust the cache so the next GET /api/tickers fetches fresh data
-    revalidateTag("prices", "max");
-
-    // Fetch fresh data immediately and return it
-    const data = await buildTickerData();
+    const data = await fetchAndCachePrices();
     return NextResponse.json(data);
   } catch (err) {
-    console.error("[/api/refresh] Failed:", err);
-    return NextResponse.json(
-      { error: "Failed to refresh prices" },
-      { status: 500 }
-    );
+    console.error("[POST /api/refresh]", err);
+    return NextResponse.json({ error: "Failed to refresh prices" }, { status: 500 });
   }
 }
