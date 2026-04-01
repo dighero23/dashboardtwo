@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   RefreshCw,
@@ -163,6 +163,11 @@ export default function StockTracker() {
   const [showLogin, setShowLogin] = useState(false);
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [alertPanelTickerId, setAlertPanelTickerId] = useState<string | null | undefined>(undefined);
+
+  // Mobile swipe-to-delete
+  const [swipedTickerId, setSwipedTickerId] = useState<string | null>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   // undefined = closed, null = open (list view), "id" = open for specific ticker
 
   // ── Auth setup ──────────────────────────────────────────────────────────────
@@ -468,20 +473,20 @@ export default function StockTracker() {
                               <span className="text-slate-600 text-xs">—</span>
                             )}
                           </td>
-                          {/* Bell icon — auth only */}
+                          {/* Bell icon — always visible; prompts login if not authed */}
                           <td className="px-4 py-3 text-center">
-                            {user && (
-                              <button
-                                onClick={() => setAlertPanelTickerId(ticker.id)}
-                                className={`p-1 rounded transition-all ${
-                                  ticker.hasAlert
-                                    ? "text-amber-400"
-                                    : "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400"
-                                }`}
-                              >
-                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => user ? setAlertPanelTickerId(ticker.id) : setShowLogin(true)}
+                              className={`p-1 rounded transition-all ${
+                                ticker.hasAlert
+                                  ? "text-amber-400"
+                                  : user
+                                    ? "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400"
+                                    : "opacity-0 group-hover:opacity-100 text-slate-600 hover:text-slate-400"
+                              }`}
+                            >
+                              <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
+                            </button>
                           </td>
                           {/* Delete — auth only */}
                           {user && (
@@ -579,8 +584,33 @@ export default function StockTracker() {
                   return (
                     <div
                       key={ticker.id}
-                      className="relative rounded-xl bg-slate-800/50 border border-slate-700/60 overflow-hidden"
+                      className="relative rounded-xl overflow-hidden"
+                      onTouchStart={user ? (e) => {
+                        if (swipedTickerId && swipedTickerId !== ticker.id) setSwipedTickerId(null);
+                        touchStartX.current = e.touches[0].clientX;
+                        touchStartY.current = e.touches[0].clientY;
+                      } : undefined}
+                      onTouchEnd={user ? (e) => {
+                        const dx = touchStartX.current - e.changedTouches[0].clientX;
+                        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+                        if (Math.abs(dx) < dy) return; // vertical scroll — ignore
+                        if (dx > 60) setSwipedTickerId(ticker.id);
+                        else if (dx < -20) setSwipedTickerId(null);
+                      } : undefined}
                     >
+                      {/* Delete action — revealed on swipe left */}
+                      {user && (
+                        <button
+                          className="absolute right-0 top-0 bottom-0 w-[72px] flex flex-col items-center justify-center bg-red-600 gap-1"
+                          onClick={() => { setSwipedTickerId(null); handleDeleteTicker(ticker.id, ticker.symbol); }}
+                        >
+                          <Trash2 className="w-5 h-5 text-white" />
+                          <span className="text-[10px] text-white font-medium">Delete</span>
+                        </button>
+                      )}
+
+                      {/* Card content — slides left on swipe */}
+                      <div className={`relative rounded-xl bg-slate-800/50 border border-slate-700/60 overflow-hidden transition-transform duration-200${swipedTickerId === ticker.id ? " -translate-x-[72px]" : ""}`}>
                       {/* Proximity left border */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${proxColor}`} />
 
@@ -603,9 +633,12 @@ export default function StockTracker() {
                                 <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
                               </button>
                             ) : (
-                              <span className="flex items-center justify-center w-7 h-7 text-slate-600">
-                                <Bell className="w-4 h-4" />
-                              </span>
+                              <button
+                                onClick={() => setShowLogin(true)}
+                                className={`flex items-center justify-center w-7 h-7 ${ticker.hasAlert ? "text-amber-400" : "text-slate-600"}`}
+                              >
+                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
+                              </button>
                             )}
                           </div>
 
@@ -672,6 +705,7 @@ export default function StockTracker() {
                             )}
                           </div>
                         )}
+                      </div>
                       </div>
                     </div>
                   );
