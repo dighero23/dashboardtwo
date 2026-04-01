@@ -1,32 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Props {
   onClose: () => void;
   onAdded: () => void;
 }
 
+type LookupState = "idle" | "loading" | "found" | "not-found";
+
 export default function AddTickerModal({ onClose, onAdded }: Props) {
   const [symbol, setSymbol] = useState("");
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const [lookupState, setLookupState] = useState<LookupState>("idle");
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function lookupSymbol(raw: string) {
+    const sym = raw.trim().toUpperCase();
+    if (!sym) return;
+
+    setLookupState("loading");
+    setResolvedName(null);
+
+    try {
+      const res = await fetch(`/api/tickers/lookup?symbol=${encodeURIComponent(sym)}`);
+      if (res.ok) {
+        const json = await res.json();
+        setResolvedName(json.name ?? sym);
+        setLookupState("found");
+      } else {
+        setLookupState("not-found");
+      }
+    } catch {
+      setLookupState("not-found");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const sym = symbol.trim().toUpperCase();
+    if (!sym) return;
+
     setError(null);
-    setLoading(true);
+    setSubmitting(true);
 
     const res = await fetch("/api/tickers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: symbol.trim().toUpperCase(), name: name.trim() }),
+      body: JSON.stringify({ symbol: sym, name: resolvedName }),
     });
 
     const json = await res.json();
-    setLoading(false);
+    setSubmitting(false);
 
     if (!res.ok) {
       setError(json.error ?? "Failed to add ticker");
@@ -34,6 +61,8 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
       onAdded();
     }
   }
+
+  const canSubmit = symbol.trim().length > 0 && lookupState !== "not-found" && !submitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -49,28 +78,46 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Symbol <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-slate-400 mb-1.5">
+              Symbol <span className="text-red-400">*</span>
+            </label>
             <input
               type="text"
               value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setSymbol(e.target.value.toUpperCase());
+                setLookupState("idle");
+                setResolvedName(null);
+              }}
+              onBlur={() => lookupSymbol(symbol)}
               required
               autoFocus
               maxLength={10}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors font-mono uppercase"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-[16px] text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors font-mono uppercase"
               placeholder="AAPL"
             />
-          </div>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Company name <span className="text-slate-600">(optional)</span></label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors"
-              placeholder="Apple Inc."
-            />
+            {/* Company name resolution feedback */}
+            <div className="mt-2 min-h-[20px]">
+              {lookupState === "loading" && (
+                <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Looking up…
+                </span>
+              )}
+              {lookupState === "found" && resolvedName && (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                  <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                  {resolvedName}
+                </span>
+              )}
+              {lookupState === "not-found" && (
+                <span className="flex items-center gap-1.5 text-xs text-red-400">
+                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                  Ticker not found
+                </span>
+              )}
+            </div>
           </div>
 
           {error && (
@@ -89,10 +136,10 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
             </button>
             <button
               type="submit"
-              disabled={loading || !symbol.trim()}
+              disabled={!canSubmit}
               className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium text-sm rounded-lg py-2.5 transition-colors flex items-center justify-center gap-2"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Add
             </button>
           </div>
