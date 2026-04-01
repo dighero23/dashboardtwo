@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Props {
@@ -16,19 +16,28 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
   const [lookupState, setLookupState] = useState<LookupState>("idle");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a ref so handleSubmit always reads the latest resolved name
+  const resolvedNameRef = useRef<string | null>(null);
 
   async function lookupSymbol(raw: string) {
     const sym = raw.trim().toUpperCase();
-    if (!sym) return;
+    if (!sym) {
+      setLookupState("idle");
+      return;
+    }
 
     setLookupState("loading");
     setResolvedName(null);
+    resolvedNameRef.current = null;
 
     try {
       const res = await fetch(`/api/tickers/lookup?symbol=${encodeURIComponent(sym)}`);
       if (res.ok) {
         const json = await res.json();
-        setResolvedName(json.name ?? sym);
+        const name = json.name ?? sym;
+        setResolvedName(name);
+        resolvedNameRef.current = name;
         setLookupState("found");
       } else {
         setLookupState("not-found");
@@ -38,10 +47,28 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
     }
   }
 
+  // Debounced auto-lookup as user types — no need to blur
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const sym = symbol.trim();
+    if (!sym) {
+      setLookupState("idle");
+      setResolvedName(null);
+      resolvedNameRef.current = null;
+      return;
+    }
+    setLookupState("loading");
+    debounceRef.current = setTimeout(() => lookupSymbol(sym), 600);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const sym = symbol.trim().toUpperCase();
-    if (!sym) return;
+    if (!sym || lookupState !== "found") return;
 
     setError(null);
     setSubmitting(true);
@@ -49,7 +76,8 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
     const res = await fetch("/api/tickers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: sym, name: resolvedName }),
+      // Use ref — avoids stale closure if state hasn't settled yet
+      body: JSON.stringify({ symbol: sym, name: resolvedNameRef.current }),
     });
 
     const json = await res.json();
@@ -62,7 +90,7 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
     }
   }
 
-  const canSubmit = symbol.trim().length > 0 && lookupState !== "not-found" && !submitting;
+  const canSubmit = lookupState === "found" && !submitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
