@@ -18,16 +18,40 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
       setState("unsupported");
       return;
     }
-    if (Notification.permission === "denied") {
-      setState("denied");
-      return;
+
+    function checkState() {
+      if (!("Notification" in window)) { setState("unsupported"); return; }
+      const permission = (window as { Notification: { permission: NotificationPermission } }).Notification.permission;
+
+      if (permission === "denied") {
+        // Silently clean up any stale subscription from Supabase
+        navigator.serviceWorker.getRegistration("/").then(async (reg) => {
+          if (!reg) return;
+          const sub = await reg.pushManager.getSubscription();
+          if (!sub) return;
+          sub.unsubscribe();
+          fetch("/api/push", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          });
+        });
+        setState("denied");
+        return;
+      }
+
+      navigator.serviceWorker
+        .register("/sw.js", { scope: "/", updateViaCache: "none" })
+        .then((reg) => reg.pushManager.getSubscription())
+        .then((sub) => setState(sub ? "subscribed" : "unsubscribed"))
+        .catch(() => setState("unsubscribed"));
     }
 
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/", updateViaCache: "none" })
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setState(sub ? "subscribed" : "unsubscribed"))
-      .catch(() => setState("unsubscribed"));
+    checkState();
+
+    const onVisible = () => { if (document.visibilityState === "visible") checkState(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   async function subscribe() {
@@ -93,7 +117,7 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
       return (
         <span
           title="Notifications blocked in browser settings"
-          className="flex items-center gap-1.5 text-xs border border-slate-800 text-slate-600 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
+          className="flex items-center gap-1.5 text-xs border border-amber-500/30 text-amber-500/60 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
         >
           <BellOff className="w-3.5 h-3.5" />
           Push blocked
@@ -131,7 +155,7 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
     return (
       <span
         title="Notifications blocked in browser settings"
-        className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 border border-slate-800 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
+        className="hidden sm:flex items-center gap-1.5 text-xs text-amber-500/60 border border-amber-500/30 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
       >
         <BellOff className="w-3.5 h-3.5" />
         Blocked
