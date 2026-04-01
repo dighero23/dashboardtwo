@@ -42,8 +42,19 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
 
       navigator.serviceWorker
         .register("/sw.js", { scope: "/", updateViaCache: "none" })
-        .then((reg) => reg.pushManager.getSubscription())
-        .then((sub) => setState(sub ? "subscribed" : "unsubscribed"))
+        .then(async (reg) => {
+          const sub = await reg.pushManager.getSubscription();
+          if (!sub) { setState("unsubscribed"); return; }
+          // Browser has a subscription — verify it's still registered in Supabase.
+          // If not (e.g. server cleaned it up after a 410), treat as unsubscribed.
+          try {
+            const res = await fetch("/api/push");
+            const { subscribed } = await res.json() as { subscribed: boolean };
+            setState(subscribed ? "subscribed" : "unsubscribed");
+          } catch {
+            setState("subscribed"); // network error — assume subscribed, avoid false negatives
+          }
+        })
         .catch(() => setState("unsubscribed"));
     }
 

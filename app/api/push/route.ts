@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
+// GET /api/push — returns { subscribed: boolean } for the authenticated user
+export async function GET() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ subscribed: false });
+
+  const db = createAdminClient();
+  const { count } = await db
+    .from("push_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  return NextResponse.json({ subscribed: (count ?? 0) > 0 });
+}
+
 // POST /api/push — save a push subscription for the authenticated user
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
