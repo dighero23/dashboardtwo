@@ -117,7 +117,6 @@ export default function AddTickerModal({ onClose, onAdded }: Props) {
                 setLookupState("idle");
                 setResolvedName(null);
               }}
-              onBlur={() => lookupSymbol(symbol)}
               required
               autoFocus
               maxLength={10}
