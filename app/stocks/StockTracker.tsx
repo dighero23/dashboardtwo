@@ -164,9 +164,9 @@ export default function StockTracker() {
   const [showAddTicker, setShowAddTicker] = useState(false);
   const [alertPanelTickerId, setAlertPanelTickerId] = useState<string | null | undefined>(undefined);
 
-  // Mobile swipe-to-delete
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+  // Mobile swipe-to-delete (ref tracks live gesture; state drives render)
+  const swipeRef = useRef<{ id: string; startX: number; startY: number; offset: number; isH: boolean } | null>(null);
+  const [swipeDisplay, setSwipeDisplay] = useState<{ id: string; offset: number } | null>(null);
   // undefined = closed, null = open (list view), "id" = open for specific ticker
 
   // ── Auth setup ──────────────────────────────────────────────────────────────
@@ -583,18 +583,45 @@ export default function StockTracker() {
                   return (
                     <div
                       key={ticker.id}
-                      className="relative rounded-xl bg-slate-800/50 border border-slate-700/60 overflow-hidden"
+                      className="relative rounded-xl overflow-hidden"
                       onTouchStart={user ? (e) => {
-                        touchStartX.current = e.touches[0].clientX;
-                        touchStartY.current = e.touches[0].clientY;
+                        swipeRef.current = { id: ticker.id, startX: e.touches[0].clientX, startY: e.touches[0].clientY, offset: 0, isH: false };
                       } : undefined}
-                      onTouchEnd={user ? (e) => {
-                        const dx = touchStartX.current - e.changedTouches[0].clientX;
-                        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-                        if (Math.abs(dx) < dy) return; // vertical scroll — ignore
-                        if (dx > 100) handleDeleteTicker(ticker.id, ticker.symbol);
+                      onTouchMove={user ? (e) => {
+                        const s = swipeRef.current;
+                        if (!s || s.id !== ticker.id) return;
+                        const dx = s.startX - e.touches[0].clientX;
+                        const dy = Math.abs(e.touches[0].clientY - s.startY);
+                        if (!s.isH) {
+                          if (dy > 8 && dy > Math.abs(dx)) { swipeRef.current = null; setSwipeDisplay(null); return; }
+                          if (Math.abs(dx) < 8) return;
+                          s.isH = true;
+                        }
+                        if (dx > 0) { s.offset = Math.min(dx, 110); setSwipeDisplay({ id: s.id, offset: s.offset }); }
                       } : undefined}
+                      onTouchEnd={user ? () => {
+                        const s = swipeRef.current;
+                        swipeRef.current = null;
+                        setSwipeDisplay(null);
+                        if (s && s.id === ticker.id && s.offset > 80) handleDeleteTicker(ticker.id, ticker.symbol);
+                      } : undefined}
+                      onTouchCancel={user ? () => { swipeRef.current = null; setSwipeDisplay(null); } : undefined}
                     >
+                      {/* Red delete band — revealed by swiping left */}
+                      <div
+                        className="absolute right-0 top-0 bottom-0 bg-red-600 flex items-center justify-center"
+                        style={{ width: swipeDisplay?.id === ticker.id ? swipeDisplay.offset : 0 }}
+                      >
+                        {(swipeDisplay?.id === ticker.id && swipeDisplay.offset > 40) && (
+                          <Trash2 className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+
+                      {/* Card — slides left on swipe to reveal delete band */}
+                      <div
+                        className="relative rounded-xl bg-slate-800/50 border border-slate-700/60 overflow-hidden"
+                        style={{ transform: `translateX(-${swipeDisplay?.id === ticker.id ? swipeDisplay.offset : 0}px)` }}
+                      >
                       {/* Proximity left border */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${proxColor}`} />
 
@@ -689,6 +716,7 @@ export default function StockTracker() {
                             )}
                           </div>
                         )}
+                      </div>
                       </div>
                     </div>
                   );
