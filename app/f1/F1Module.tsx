@@ -1,30 +1,168 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { ArrowLeft, Flag } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import type {
+  NextRaceResponse,
+  LastRaceResponse,
+  UpcomingRace,
+  StandingsResponse,
+  F1NotificationPrefs,
+} from "@/lib/f1/types";
+import { type Timezone } from "./constants";
+import LastRaceCard       from "./components/LastRaceCard";
+import NextRaceCard       from "./components/NextRaceCard";
+import UpcomingList       from "./components/UpcomingList";
+import Standings          from "./components/Standings";
+import MyDriverCard       from "./components/MyDriverCard";
+import MyTeamCard         from "./components/MyTeamCard";
+import NotificationsCard  from "./components/NotificationsCard";
 
-type Timezone = "CST" | "EST" | "LOCAL";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface MyPick { id: string; name: string; }
+
+const NOTIF_DEFAULTS: F1NotificationPrefs = {
+  weekAhead: true, preQuali: true, qualiResult: true, preRace: true, raceResult: false,
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function F1Module() {
-  const [timezone, setTimezone] = useState<Timezone>("CST");
+  // Auth
+  const [user, setUser] = useState<User | null>(null);
 
+  // Preferences
+  const [timezone, setTimezone] = useState<Timezone>("CST");
+  const [myDriver, setMyDriver] = useState<MyPick | null>(null);
+  const [myTeam,   setMyTeam]   = useState<MyPick | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<F1NotificationPrefs>(NOTIF_DEFAULTS);
+
+  // Data
+  const [nextRace,  setNextRace]  = useState<NextRaceResponse | null>(null);
+  const [lastRace,  setLastRace]  = useState<LastRaceResponse  | null>(null);
+  const [upcoming,  setUpcoming]  = useState<UpcomingRace[]>([]);
+  const [standings, setStandings] = useState<StandingsResponse | null>(null);
+  const [seasons,   setSeasons]   = useState<number[]>([new Date().getFullYear()]);
+  const [selectedSeason, setSelectedSeason] = useState(new Date().getFullYear());
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem("f1-timezone") as Timezone | null;
-    if (saved === "CST" || saved === "EST" || saved === "LOCAL") setTimezone(saved);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  // ── Load notification prefs from API when authenticated ───────────────────
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/f1/notifications")
+      .then((r) => r.json())
+      .then((p: F1NotificationPrefs) => setNotifPrefs(p))
+      .catch(() => {});
+  }, [user]);
+
+  // ── Hydrate localStorage preferences (client-only) ────────────────────────
+  useEffect(() => {
+    try {
+      const tz = localStorage.getItem("f1-timezone") as Timezone | null;
+      if (tz === "CST" || tz === "EST" || tz === "LOCAL") setTimezone(tz);
+
+      const driver = localStorage.getItem("f1-my-driver");
+      if (driver) setMyDriver(JSON.parse(driver) as MyPick);
+
+      const team = localStorage.getItem("f1-my-team");
+      if (team) setMyTeam(JSON.parse(team) as MyPick);
+
+      const prefs = localStorage.getItem("f1-notif-prefs");
+      if (prefs) setNotifPrefs(JSON.parse(prefs) as F1NotificationPrefs);
+    } catch {}
+  }, []);
+
+  // ── Fetch seasons list ────────────────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/f1/seasons")
+      .then((r) => r.json())
+      .then(({ seasons }: { seasons: number[] }) => setSeasons(seasons))
+      .catch(() => {});
+  }, []);
+
+  // ── Fetch main data on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      const [nextRes, lastRes, upcomingRes] = await Promise.allSettled([
+        fetch("/api/f1/next-race").then((r) => r.json()),
+        fetch("/api/f1/last-race").then((r) => r.json()),
+        fetch("/api/f1/upcoming").then((r) => r.json()),
+      ]);
+      if (nextRes.status     === "fulfilled") setNextRace(nextRes.value as NextRaceResponse);
+      if (lastRes.status     === "fulfilled") setLastRace(lastRes.value as LastRaceResponse);
+      if (upcomingRes.status === "fulfilled") {
+        const data = upcomingRes.value as { races: UpcomingRace[] };
+        setUpcoming(data.races ?? []);
+      }
+    }
+    load();
+  }, []);
+
+  // ── Fetch standings when season changes ────────────────────────────────────
+  useEffect(() => {
+    fetch(`/api/f1/standings?season=${selectedSeason}`)
+      .then((r) => r.json())
+      .then((data: StandingsResponse) => setStandings(data))
+      .catch(() => {});
+  }, [selectedSeason]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   function handleTimezone(tz: Timezone) {
     setTimezone(tz);
     localStorage.setItem("f1-timezone", tz);
   }
 
+  function handleDriverChange(id: string, name: string) {
+    const pick: MyPick = { id, name };
+    setMyDriver(pick);
+    localStorage.setItem("f1-my-driver", JSON.stringify(pick));
+  }
+
+  function handleTeamChange(id: string, name: string) {
+    const pick: MyPick = { id, name };
+    setMyTeam(pick);
+    localStorage.setItem("f1-my-team", JSON.stringify(pick));
+  }
+
+  const handleNotifToggle = useCallback(
+    async (key: keyof F1NotificationPrefs, value: boolean) => {
+      const newPrefs = { ...notifPrefs, [key]: value };
+      setNotifPrefs(newPrefs);
+      if (user) {
+        await fetch("/api/f1/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newPrefs),
+        });
+      } else {
+        localStorage.setItem("f1-notif-prefs", JSON.stringify(newPrefs));
+      }
+    },
+    [notifPrefs, user]
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Header */}
+      {/* ── Sticky header ─────────────────────────────────────────────────── */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          {/* Back link */}
+          {/* Back */}
           <Link
             href="/"
             className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm transition-colors"
@@ -63,16 +201,48 @@ export default function F1Module() {
         </div>
       </header>
 
-      {/* Content — Phase 2b/2c will fill this in */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        <div className="rounded-xl bg-slate-800/40 border border-slate-700/60 p-8 text-center">
-          <div
-            className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4"
-            style={{ background: "#fbbf2422", border: "1px solid #fbbf2455" }}
-          >
-            <Flag className="w-6 h-6" style={{ color: "#fbbf24" }} />
-          </div>
-          <p className="text-slate-400 text-sm">Loading race data…</p>
+      {/* ── Content ───────────────────────────────────────────────────────── */}
+      <div className="max-w-md sm:max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5 sm:space-y-6">
+        {/* Last race */}
+        <LastRaceCard lastRace={lastRace} />
+
+        {/* Next race (hero) */}
+        <NextRaceCard nextRace={nextRace} timezone={timezone} />
+
+        {/* Upcoming */}
+        <UpcomingList races={upcoming} />
+
+        {/* Standings */}
+        <Standings
+          standings={standings}
+          selectedSeason={selectedSeason}
+          seasons={seasons}
+          onSeasonChange={setSelectedSeason}
+          myDriver={myDriver?.id ?? null}
+          myTeam={myTeam?.id ?? null}
+        />
+
+        {/* My driver + My team — side by side on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <MyDriverCard myDriver={myDriver} onDriverChange={handleDriverChange} />
+          <MyTeamCard   myTeam={myTeam}     onTeamChange={handleTeamChange} />
+        </div>
+
+        {/* Notifications */}
+        <NotificationsCard
+          user={user}
+          prefs={notifPrefs}
+          onToggle={handleNotifToggle}
+          onLoginRequest={() => {
+            // Phase 2d: wire to login modal / push permission flow
+          }}
+        />
+
+        {/* Footer */}
+        <div className="pt-4 text-center">
+          <p className="text-[10px] text-slate-600">
+            Powered by Jolpica-F1 · Open-Meteo
+          </p>
         </div>
       </div>
     </div>
