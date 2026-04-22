@@ -2,6 +2,7 @@
 
 import type { User } from "@supabase/supabase-js";
 import type { F1NotificationPrefs } from "@/lib/f1/types";
+import PushSubscribeButton from "@/app/stocks/components/PushSubscribeButton";
 
 interface NotifItem {
   key: keyof F1NotificationPrefs;
@@ -10,11 +11,11 @@ interface NotifItem {
 }
 
 const ITEMS: NotifItem[] = [
-  { key: "weekAhead",   label: "1 week before race",      sub: "Mondays · 12pm" },
+  { key: "weekAhead",   label: "1 week before race",      sub: "Mondays · 12pm CST" },
   { key: "preQuali",    label: "1 hour before quali",     sub: "Saturday" },
   { key: "qualiResult", label: "Qualifying result",       sub: "Within 30 min" },
   { key: "preRace",     label: "1 hour before race",      sub: "Sunday" },
-  { key: "raceResult",  label: "Race result",             sub: "Within 30 min" },
+  { key: "raceResult",  label: "Race result",             sub: "Within 2 hours" },
 ];
 
 interface Props {
@@ -24,13 +25,14 @@ interface Props {
   onLoginRequest: () => void;
 }
 
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
+function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       role="switch"
       aria-checked={on}
       onClick={onClick}
-      className="relative w-9 h-5 rounded-full transition-colors flex-shrink-0"
+      disabled={disabled}
+      className="relative w-9 h-5 rounded-full transition-colors flex-shrink-0 disabled:opacity-40"
       style={{ background: on ? "#fbbf24" : "#334155" }}
     >
       <div
@@ -53,9 +55,12 @@ export default function NotificationsCard({ user, prefs, onToggle, onLoginReques
 
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-medium">
-        Notifications
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+          Notifications
+        </p>
+        {user && <PushSubscribeButton mobile />}
+      </div>
 
       {!user && (
         <p className="text-[11px] text-slate-500 mb-2 px-1">
@@ -73,6 +78,7 @@ export default function NotificationsCard({ user, prefs, onToggle, onLoginReques
             <Toggle
               on={prefs[key]}
               onClick={() => handleToggle(key, prefs[key])}
+              disabled={!user}
             />
           </div>
         ))}

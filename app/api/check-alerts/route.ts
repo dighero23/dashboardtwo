@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchAndCachePrices } from "@/lib/buildTickerData";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/webpush";
+import { checkF1Notifications } from "@/lib/f1/checkF1Notifications";
 
 // GET /api/check-alerts — cron target (cron-job.org, every 1 min)
 // 1. Fetch fresh prices → write to price_cache
@@ -105,6 +106,11 @@ export async function GET(req: NextRequest) {
         }
       }
     }
+
+    // 5. Check F1 push notifications (non-blocking — errors don't fail the cron)
+    await checkF1Notifications().catch((err) =>
+      console.error("[check-alerts] F1 notifications error:", err)
+    );
 
     return NextResponse.json({
       ok: true,
