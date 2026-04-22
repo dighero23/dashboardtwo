@@ -64,13 +64,13 @@ function buildNotif(type: string, race: JolpicaRace): { title: string; body: str
   }
 }
 
-// DB column name for each notification type
-const PREF_COLUMN: Record<string, string> = {
-  weekAhead:   "week_ahead",
-  preQuali:    "pre_quali",
-  qualiResult: "quali_result",
-  preRace:     "pre_race",
-  raceResult:  "race_result",
+// Maps camelCase fire key → DB column (pref) and DB notification_type (snake_case)
+const NOTIF_MAP: Record<string, { prefCol: string; dbType: string }> = {
+  weekAhead:   { prefCol: "week_ahead",   dbType: "week_ahead" },
+  preQuali:    { prefCol: "pre_quali",    dbType: "pre_quali" },
+  qualiResult: { prefCol: "quali_result", dbType: "quali_result" },
+  preRace:     { prefCol: "pre_race",     dbType: "pre_race" },
+  raceResult:  { prefCol: "race_result",  dbType: "race_result" },
 };
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -136,15 +136,15 @@ export async function checkF1Notifications(): Promise<void> {
 
   for (const prefs of allPrefs) {
     for (const notifType of toFire) {
-      const prefCol = PREF_COLUMN[notifType];
-      if (!prefCol || !prefs[prefCol as keyof typeof prefs]) continue;
+      const map = NOTIF_MAP[notifType];
+      if (!map || !prefs[map.prefCol as keyof typeof prefs]) continue;
 
-      // Insert dedup record — unique constraint prevents double-send
+      // Insert dedup record using snake_case type — unique constraint prevents double-send
       const { error: insertErr } = await db.from("f1_sent_notifications").insert({
         user_id: prefs.user_id,
         race_season: season,
         race_round: round,
-        notification_type: notifType,
+        notification_type: map.dbType,
       });
 
       // Constraint violation = already sent → skip
@@ -161,7 +161,7 @@ export async function checkF1Notifications(): Promise<void> {
         const ok = await sendPush(sub as StoredSubscription, {
           title,
           body,
-          tag: `f1-${notifType}-${season}-${round}`,
+          tag: `f1-${map.dbType}-${season}-${round}`,
           url: "/f1",
         });
 
