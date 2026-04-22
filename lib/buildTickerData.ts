@@ -42,11 +42,15 @@ function calcPct(price: number, ref: number | null): number | null {
 
 function daysUntil(isoDate: string | null): number | null {
   if (!isoDate) return null;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const d = new Date(isoDate);
-  d.setHours(0, 0, 0, 0);
-  const days = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const target = Date.UTC(y, m - 1, d);
+  const now = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
+  );
+  const days = Math.round((target - now) / 86_400_000);
   return days >= 0 ? days : null;
 }
 

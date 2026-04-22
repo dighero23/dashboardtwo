@@ -27,18 +27,23 @@ export async function fetchNextEarnings(
 
     if (calendar.length === 0) return null;
 
-    // First entry is the soonest upcoming earnings
+    // Sort ascending — Finnhub usually returns chronological order but be explicit
+    calendar.sort((a, b) => a.date.localeCompare(b.date));
     const earningsDate = calendar[0].date;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const earningsDateObj = new Date(earningsDate);
-    earningsDateObj.setHours(0, 0, 0, 0);
+    // Use UTC-based comparison to avoid DST / server-timezone surprises
+    const [ey, em, ed] = earningsDate.slice(0, 10).split("-").map(Number);
+    const earningsMs = Date.UTC(ey, em - 1, ed);
+    const todayMs = Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      new Date().getUTCDate()
+    );
 
-    // If the date (including year) is in the past, we don't know the next earnings yet
-    if (earningsDateObj < today) return null;
+    // Date already passed → we don't know the next earnings yet
+    if (earningsMs < todayMs) return null;
 
-    const days = Math.round((earningsDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.round((earningsMs - todayMs) / 86_400_000);
     return { date: earningsDate, days };
   } catch {
     return null;

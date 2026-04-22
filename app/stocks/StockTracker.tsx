@@ -78,9 +78,13 @@ function pctColor(n: number | null) {
   return "text-slate-300";
 }
 
-function earningsBadge(days: number | null) {
-  if (days === null || days < 0) return null;
-  return { text: `ER: ${days}d`, urgent: days <= 7 };
+function earningsBadge(date: string | null, days: number | null) {
+  if (!date || days === null || days < 0) return null;
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const label = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", timeZone: "UTC",
+  });
+  return { text: `ER · ${label}`, urgent: days <= 7 };
 }
 
 function sortTickers(data: TickerData[], key: SortKey, dir: SortDir): TickerData[] {
@@ -428,7 +432,7 @@ export default function StockTracker() {
                 {loading
                   ? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
                   : sorted.map((ticker) => {
-                      const badge = earningsBadge(ticker.earningsDays);
+                      const badge = earningsBadge(ticker.earningsDate, ticker.earningsDays);
                       const proxColor = proximityColor(ticker.targetPct);
                       return (
                         <tr key={ticker.id} className="group hover:bg-slate-800/50 transition-colors">
@@ -576,7 +580,7 @@ export default function StockTracker() {
             {loading
               ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
               : sorted.map((ticker) => {
-                  const badge = earningsBadge(ticker.earningsDays);
+                  const badge = earningsBadge(ticker.earningsDate, ticker.earningsDays);
                   const proxColor = proximityColor(ticker.targetPct);
                   const hasSecondary = ticker.targetPrice !== null || badge !== null;
 
