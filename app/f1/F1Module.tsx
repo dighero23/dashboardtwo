@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Flag } from "lucide-react";
+import { ArrowLeft, Flag, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import LoginModal from "@/app/stocks/components/LoginModal";
 import type {
   NextRaceResponse,
   LastRaceResponse,
@@ -34,6 +35,8 @@ const NOTIF_DEFAULTS: F1NotificationPrefs = {
 export default function F1Module() {
   // Auth
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
 
   // Preferences
   const [timezone, setTimezone] = useState<Timezone>("CST");
@@ -52,7 +55,10 @@ export default function F1Module() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setAuthLoading(false);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
@@ -126,6 +132,11 @@ export default function F1Module() {
     localStorage.setItem("f1-timezone", tz);
   }
 
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+  }
+
   function handleDriverChange(id: string, name: string) {
     const pick: MyPick = { id, name };
     setMyDriver(pick);
@@ -182,21 +193,42 @@ export default function F1Module() {
             <span className="font-semibold text-white text-sm sm:text-base">Formula 1</span>
           </div>
 
-          {/* Timezone toggle */}
-          <div className="flex items-center text-xs rounded-lg border border-slate-700 overflow-hidden">
-            {(["CST", "EST", "LOCAL"] as Timezone[]).map((tz) => (
+          {/* Right controls: timezone + auth */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center text-xs rounded-lg border border-slate-700 overflow-hidden">
+              {(["CST", "EST", "LOCAL"] as Timezone[]).map((tz) => (
+                <button
+                  key={tz}
+                  onClick={() => handleTimezone(tz)}
+                  className={`px-2 py-1 transition-colors ${
+                    timezone === tz
+                      ? "bg-slate-700 text-white font-medium"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  }`}
+                >
+                  {tz}
+                </button>
+              ))}
+            </div>
+            {!authLoading && user && (
               <button
-                key={tz}
-                onClick={() => handleTimezone(tz)}
-                className={`px-2 py-1 transition-colors ${
-                  timezone === tz
-                    ? "bg-slate-700 text-white font-medium"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-                }`}
+                onClick={handleLogout}
+                title="Sign out"
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-400 transition-colors border border-slate-700 rounded-lg px-2 py-1"
               >
-                {tz}
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign out</span>
               </button>
-            ))}
+            )}
+            {!authLoading && !user && (
+              <button
+                onClick={() => setShowLogin(true)}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors border border-slate-700 hover:border-slate-600 rounded-lg px-2 py-1"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Login</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -233,9 +265,7 @@ export default function F1Module() {
           user={user}
           prefs={notifPrefs}
           onToggle={handleNotifToggle}
-          onLoginRequest={() => {
-            // Phase 2d: wire to login modal / push permission flow
-          }}
+          onLoginRequest={() => setShowLogin(true)}
         />
 
         {/* Footer */}
@@ -245,6 +275,13 @@ export default function F1Module() {
           </p>
         </div>
       </div>
+
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={() => setShowLogin(false)}
+        />
+      )}
     </div>
   );
 }

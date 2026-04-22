@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Settings } from "lucide-react";
 import type { TeamStats, F1Team } from "@/lib/f1/types";
 import { getTeamColor } from "../constants";
 
@@ -61,16 +62,27 @@ export default function MyTeamCard({ myTeam, onTeamChange }: Props) {
   return (
     <>
       <div>
-        <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-medium">
-          My team ·{" "}
+        {/* Label row with gear icon */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+            My team
+            {myTeam && (
+              <span
+                className="ml-1.5 normal-case tracking-normal font-normal"
+                style={{ color: teamColor }}
+              >
+                · {myTeam.name}
+              </span>
+            )}
+          </p>
           <button
             onClick={openPicker}
-            className="normal-case tracking-normal hover:opacity-80 transition-opacity"
-            style={{ color: myTeam ? teamColor : "#94a3b8" }}
+            title="Change team"
+            className="text-slate-600 hover:text-slate-400 transition-colors p-0.5"
           >
-            {myTeam?.name ?? "Pick a team →"}
+            <Settings className="w-3.5 h-3.5" />
           </button>
-        </p>
+        </div>
 
         <div
           className="rounded-xl bg-slate-800/40 border p-4"

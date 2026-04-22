@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Settings } from "lucide-react";
 import type { DriverStats, F1Driver } from "@/lib/f1/types";
 import { getTeamColor } from "../constants";
 
@@ -30,7 +31,6 @@ export default function MyDriverCard({ myDriver, onDriverChange }: Props) {
   const [drivers, setDrivers] = useState<F1Driver[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
 
-  // Fetch stats when driver changes
   useEffect(() => {
     if (!myDriver) { setStats(null); return; }
     setLoadingStats(true);
@@ -62,15 +62,24 @@ export default function MyDriverCard({ myDriver, onDriverChange }: Props) {
   return (
     <>
       <div>
-        <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-medium">
-          My driver ·{" "}
+        {/* Label row with gear icon */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
+            My driver
+            {myDriver && (
+              <span className="ml-1.5 normal-case tracking-normal font-normal text-slate-400">
+                · {myDriver.name}
+              </span>
+            )}
+          </p>
           <button
             onClick={openPicker}
-            className="text-slate-400 normal-case tracking-normal hover:text-slate-200 transition-colors"
+            title="Change driver"
+            className="text-slate-600 hover:text-slate-400 transition-colors p-0.5"
           >
-            {myDriver?.name ?? "Pick a driver →"}
+            <Settings className="w-3.5 h-3.5" />
           </button>
-        </p>
+        </div>
 
         <div
           className="rounded-xl bg-slate-800/40 border p-4"
