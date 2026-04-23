@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getFredSeries } from "@/lib/fred";
+import type { FredObservation } from "@/lib/fred";
 import type { IndicatorsResponse, InflationSeries, RatePoint } from "@/lib/macro/types";
+
+/** Type predicate — narrows FredObservation to one whose value is definitely a number. */
+function hasValue(o: FredObservation): o is { date: string; value: number } {
+  return o.value !== null;
+}
 
 /**
  * Compute 12-month history of YoY% changes from a DESC-sorted observations array.
@@ -9,7 +15,7 @@ import type { IndicatorsResponse, InflationSeries, RatePoint } from "@/lib/macro
 function buildInflationSeries(
   obs: { date: string; value: number | null }[]
 ): InflationSeries | null {
-  const valid = obs.filter((o) => o.value !== null) as { date: string; value: number }[];
+  const valid = obs.filter((o): o is { date: string; value: number } => o.value !== null);
   if (valid.length < 13) return null;
 
   // obs is sorted DESC (newest first), compute YoY for each of the 12 most recent months
@@ -51,8 +57,7 @@ export async function GET() {
 
     const response: IndicatorsResponse = {
       fedFunds: (() => {
-        const obs = fedFundsData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null) as { date: string; value: number }[];
+        const valid = (fedFundsData?.observations ?? []).filter(hasValue);
         if (!valid[0]) return null;
         return { current: valid[0].value, prev: valid[1]?.value ?? null, date: valid[0].date };
       })(),
@@ -61,38 +66,33 @@ export async function GET() {
       pce: buildInflationSeries(pceData?.observations ?? []),
 
       unemployment: (() => {
-        const obs = unemploymentData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null)[0];
-        return valid ? { rate: valid.value, date: valid.date } : null;
+        const valid = (unemploymentData?.observations ?? []).filter(hasValue);
+        return valid[0] ? { rate: valid[0].value, date: valid[0].date } : null;
       })(),
 
       treasury10y: (() => {
-        const obs = t10yData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null)[0];
-        return valid ? { rate: valid.value, date: valid.date } : null;
+        const valid = (t10yData?.observations ?? []).filter(hasValue);
+        return valid[0] ? { rate: valid[0].value, date: valid[0].date } : null;
       })(),
 
       treasury2y: (() => {
-        const obs = t2yData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null)[0];
-        return valid ? { rate: valid.value, date: valid.date } : null;
+        const valid = (t2yData?.observations ?? []).filter(hasValue);
+        return valid[0] ? { rate: valid[0].value, date: valid[0].date } : null;
       })(),
 
       yieldSpread: (() => {
-        const obs = spreadData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null) as { date: string; value: number }[];
+        const valid = (spreadData?.observations ?? []).filter(hasValue);
         if (!valid[0]) return null;
         return {
           spread: valid[0].value,
-          date: valid[0].date,
+          date:   valid[0].date,
           history: valid.slice().reverse().map((o) => ({ date: o.date, value: o.value })),
         };
       })(),
 
       vix: (() => {
-        const obs = vixData?.observations ?? [];
-        const valid = obs.filter((o) => o.value !== null)[0];
-        return valid ? { value: valid.value, date: valid.date } : null;
+        const valid = (vixData?.observations ?? []).filter(hasValue);
+        return valid[0] ? { value: valid[0].value, date: valid[0].date } : null;
       })(),
 
       updatedAt: new Date().toISOString(),
