@@ -1,18 +1,8 @@
 import { createAdminClient } from "./supabase/server";
+import type { MacroEvent } from "./macro/types";
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 const CALENDAR_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-export interface MacroEvent {
-  event: string;
-  country: string;
-  impact: "high" | "medium" | "low" | string;
-  time: string;        // ISO datetime string
-  actual: number | null;
-  prev: number | null;
-  estimate: number | null;
-  unit: string | null;
-}
 
 /**
  * Fetch upcoming economic calendar events from Finnhub.
