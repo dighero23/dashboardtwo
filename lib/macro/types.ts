@@ -23,6 +23,16 @@ export interface IndicatorsResponse {
   updatedAt:   string;
 }
 
+// ─── Notification preferences ────────────────────────────────────────────────
+
+export interface MacroNotificationPrefs {
+  cpiRelease:  boolean;
+  fedDecision: boolean;
+  gdpRelease:  boolean;
+  jobsReport:  boolean;
+  pceRelease:  boolean;
+}
+
 // ─── Finnhub economic calendar shapes ────────────────────────────────────────
 
 export interface MacroEvent {

@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import type { IndicatorsResponse, MacroEvent } from "@/lib/macro/types";
+import { ArrowLeft, BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import LoginModal from "@/app/stocks/components/LoginModal";
+import type { IndicatorsResponse, MacroEvent, MacroNotificationPrefs } from "@/lib/macro/types";
+import NotificationsCard from "./components/NotificationsCard";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -125,11 +129,66 @@ function Skeleton({ h = "h-20" }: { h?: string }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const NOTIF_DEFAULTS: MacroNotificationPrefs = {
+  cpiRelease: true, fedDecision: true, gdpRelease: false, jobsReport: true, pceRelease: false,
+};
+
 export default function MacroPulse() {
+  // Auth
+  const [user,        setUser]        = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showLogin,   setShowLogin]   = useState(false);
+
+  // Notification prefs
+  const [notifPrefs, setNotifPrefs] = useState<MacroNotificationPrefs>(NOTIF_DEFAULTS);
+
+  // Data
   const [indicators, setIndicators] = useState<IndicatorsResponse | null>(null);
   const [events,     setEvents]     = useState<MacroEvent[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Load notification prefs from API when authenticated ──────────────────
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/macro/notifications")
+      .then((r) => r.json())
+      .then((p: MacroNotificationPrefs) => setNotifPrefs(p))
+      .catch(() => {});
+  }, [user]);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+  }
+
+  const handleNotifToggle = useCallback(
+    async (key: keyof MacroNotificationPrefs, value: boolean) => {
+      const newPrefs = { ...notifPrefs, [key]: value };
+      setNotifPrefs(newPrefs);
+      if (user) {
+        await fetch("/api/macro/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newPrefs),
+        });
+      }
+    },
+    [notifPrefs, user]
+  );
 
   const load = useCallback(async () => {
     const [indRes, evtRes] = await Promise.allSettled([
@@ -194,15 +253,36 @@ export default function MacroPulse() {
             <span className="font-semibold text-white text-sm sm:text-base">Macro Pulse</span>
           </div>
 
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing || loading}
-            title="Refresh data"
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-40"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              title="Refresh data"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-40"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            {!authLoading && user && (
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-400 transition-colors border border-slate-700 rounded-lg px-2 py-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            )}
+            {!authLoading && !user && (
+              <button
+                onClick={() => setShowLogin(true)}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors border border-slate-700 hover:border-slate-600 rounded-lg px-2 py-1"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Login</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -492,6 +572,14 @@ export default function MacroPulse() {
           )}
         </section>
 
+        {/* ── Notifications ───────────────────────────────────────────────── */}
+        <NotificationsCard
+          user={user}
+          prefs={notifPrefs}
+          onToggle={handleNotifToggle}
+          onLoginRequest={() => setShowLogin(true)}
+        />
+
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div className="pt-2 text-center space-y-0.5">
           <p className="text-[10px] text-slate-600">
@@ -506,6 +594,12 @@ export default function MacroPulse() {
           )}
         </div>
       </div>
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={() => setShowLogin(false)}
+        />
+      )}
     </div>
   );
 }

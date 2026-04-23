@@ -3,6 +3,7 @@ import { fetchAndCachePrices } from "@/lib/buildTickerData";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/webpush";
 import { checkF1Notifications } from "@/lib/f1/checkF1Notifications";
+import { checkMacroNotifications } from "@/lib/macro/checkMacroNotifications";
 
 // GET /api/check-alerts — cron target (cron-job.org, every 1 min)
 // 1. Fetch fresh prices → write to price_cache
@@ -110,6 +111,11 @@ export async function GET(req: NextRequest) {
     // 5. Check F1 push notifications (non-blocking — errors don't fail the cron)
     await checkF1Notifications().catch((err) =>
       console.error("[check-alerts] F1 notifications error:", err)
+    );
+
+    // 6. Check macro push notifications (non-blocking)
+    await checkMacroNotifications().catch((err) =>
+      console.error("[check-alerts] Macro notifications error:", err)
     );
 
     return NextResponse.json({
