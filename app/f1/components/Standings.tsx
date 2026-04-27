@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ChevronDown, Trophy } from "lucide-react";
 import type { StandingsResponse, DriverStanding, ConstructorStanding } from "@/lib/f1/types";
 import { getTeamColor } from "../constants";
@@ -9,8 +10,8 @@ interface Props {
   selectedSeason: number;
   seasons: number[];
   onSeasonChange: (year: number) => void;
-  myDriver: string | null;   // driverId
-  myTeam: string | null;     // constructorId
+  myDriver: string | null;
+  myTeam: string | null;
 }
 
 function PosBadge({ pos }: { pos: number }) {
@@ -29,22 +30,13 @@ function PosBadge({ pos }: { pos: number }) {
   );
 }
 
-function DriverRow({
-  d,
-  highlight,
-}: {
-  d: DriverStanding;
-  highlight: boolean;
-}) {
+function DriverRow({ d, highlight }: { d: DriverStanding; highlight: boolean }) {
   const row = (
     <div className="flex items-center gap-3 px-3 py-2.5">
       <PosBadge pos={d.position} />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-white font-medium truncate leading-tight">{d.name}</p>
-        <p
-          className="text-[11px] truncate leading-tight mt-0.5"
-          style={{ color: getTeamColor(d.constructorId) }}
-        >
+        <p className="text-[11px] truncate leading-tight mt-0.5" style={{ color: getTeamColor(d.constructorId) }}>
           {d.team}
         </p>
       </div>
@@ -55,78 +47,62 @@ function DriverRow({
   if (highlight) {
     return (
       <div className="pt-1 px-1">
-        <div
-          className="rounded-lg"
-          style={{ background: "#fbbf241a", border: "1px solid #fbbf2455" }}
-        >
+        <div className="rounded-lg" style={{ background: "#fbbf241a", border: "1px solid #fbbf2455" }}>
           {row}
         </div>
       </div>
     );
   }
-
   return row;
 }
 
-function ConstructorRow({
-  c,
-  highlight,
-}: {
-  c: ConstructorStanding;
-  highlight: boolean;
-}) {
+function ConstructorRow({ c, highlight }: { c: ConstructorStanding; highlight: boolean }) {
   const row = (
     <div className="flex items-center gap-3 px-3 py-2.5">
       <PosBadge pos={c.position} />
       <p className="flex-1 text-sm text-white font-medium truncate leading-tight">{c.name}</p>
-      <div
-        className="w-1 h-7 rounded-full flex-shrink-0"
-        style={{ background: getTeamColor(c.constructorId) }}
-      />
-      <p className="text-sm font-mono text-white tabular-nums w-10 text-right flex-shrink-0">
-        {c.points}
-      </p>
+      <div className="w-1 h-7 rounded-full flex-shrink-0" style={{ background: getTeamColor(c.constructorId) }} />
+      <p className="text-sm font-mono text-white tabular-nums w-10 text-right flex-shrink-0">{c.points}</p>
     </div>
   );
 
   if (highlight) {
     return (
       <div className="pt-1 px-1">
-        <div
-          className="rounded-lg"
-          style={{ background: "#fbbf241a", border: "1px solid #fbbf2455" }}
-        >
+        <div className="rounded-lg" style={{ background: "#fbbf241a", border: "1px solid #fbbf2455" }}>
           {row}
         </div>
       </div>
     );
   }
-
   return row;
 }
 
-export default function Standings({
-  standings,
-  selectedSeason,
-  seasons,
-  onSeasonChange,
-  myDriver,
-  myTeam,
-}: Props) {
-  const drivers = standings?.drivers ?? [];
+function RowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="w-7 h-7 rounded-md bg-slate-700/60 animate-pulse" />
+      <div className="flex-1 h-3 bg-slate-700/60 rounded animate-pulse" />
+    </div>
+  );
+}
+
+export default function Standings({ standings, selectedSeason, seasons, onSeasonChange, myDriver, myTeam }: Props) {
+  const [showAllDrivers,      setShowAllDrivers]      = useState(false);
+  const [showAllConstructors, setShowAllConstructors] = useState(false);
+
+  const drivers      = standings?.drivers      ?? [];
   const constructors = standings?.constructors ?? [];
 
   const top3Drivers = drivers.slice(0, 3);
-  const myDriverData = myDriver
-    ? drivers.find((d) => d.driverId === myDriver)
-    : null;
+  const myDriverData = myDriver ? drivers.find((d) => d.driverId === myDriver) ?? null : null;
   const showMyDriver = myDriverData && myDriverData.position > 3;
 
   const top3Constructors = constructors.slice(0, 3);
-  const myTeamData = myTeam
-    ? constructors.find((c) => c.constructorId === myTeam)
-    : null;
+  const myTeamData = myTeam ? constructors.find((c) => c.constructorId === myTeam) ?? null : null;
   const showMyTeam = myTeamData && myTeamData.position > 3;
+
+  const loading = drivers.length === 0;
 
   return (
     <div>
@@ -139,7 +115,6 @@ export default function Standings({
           </span>
         </div>
 
-        {/* Season selector */}
         <div className="relative flex items-center">
           <select
             value={selectedSeason}
@@ -147,62 +122,94 @@ export default function Standings({
             className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-md pl-2.5 pr-7 py-1 appearance-none focus:outline-none focus:border-slate-500"
           >
             {seasons.map((y) => (
-              <option key={y} value={y}>
-                {y} Season
-              </option>
+              <option key={y} value={y}>{y} Season</option>
             ))}
           </select>
           <ChevronDown className="absolute right-1.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
         </div>
       </div>
 
-      {/* Cards — side by side on desktop */}
+      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Drivers */}
+
+        {/* ── Drivers ───────────────────────────────────────────────────────── */}
         <div className="rounded-xl bg-slate-800/40 border border-slate-700/60 p-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 px-2 pt-1 pb-1.5 font-medium">
             Drivers
           </p>
+
           <div className="space-y-0.5">
-            {top3Drivers.length === 0
-              ? [1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-2.5">
-                    <div className="w-7 h-7 rounded-md bg-slate-700/60 animate-pulse" />
-                    <div className="flex-1 h-3 bg-slate-700/60 rounded animate-pulse" />
-                  </div>
-                ))
+            {/* Top 3 always visible */}
+            {loading
+              ? [1, 2, 3].map((i) => <RowSkeleton key={i} />)
               : top3Drivers.map((d) => (
                   <DriverRow key={d.driverId} d={d} highlight={false} />
                 ))}
-            {showMyDriver && <DriverRow d={myDriverData} highlight={true} />}
+
+            {/* Positions 4+ — animated */}
+            <div className={`grid transition-all duration-300 ${showAllDrivers ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+              <div className="overflow-hidden space-y-0.5">
+                {drivers.slice(3).map((d) => (
+                  <DriverRow key={d.driverId} d={d} highlight={d.driverId === myDriver} />
+                ))}
+              </div>
+            </div>
+
+            {/* User's driver pinned below — only when collapsed and outside top 3 */}
+            {!showAllDrivers && showMyDriver && (
+              <DriverRow d={myDriverData} highlight={true} />
+            )}
           </div>
-          <button className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors py-2 mt-1 border-t border-slate-800">
-            View all drivers ›
+
+          <button
+            onClick={() => setShowAllDrivers((v) => !v)}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors py-2 mt-1 border-t border-slate-800 disabled:opacity-0"
+          >
+            {showAllDrivers ? "Show less" : "View all drivers"}
+            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showAllDrivers ? "rotate-180" : ""}`} />
           </button>
         </div>
 
-        {/* Constructors */}
+        {/* ── Constructors ──────────────────────────────────────────────────── */}
         <div className="rounded-xl bg-slate-800/40 border border-slate-700/60 p-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 px-2 pt-1 pb-1.5 font-medium">
             Constructors
           </p>
+
           <div className="space-y-0.5">
-            {top3Constructors.length === 0
-              ? [1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-2.5">
-                    <div className="w-7 h-7 rounded-md bg-slate-700/60 animate-pulse" />
-                    <div className="flex-1 h-3 bg-slate-700/60 rounded animate-pulse" />
-                  </div>
-                ))
+            {/* Top 3 always visible */}
+            {loading
+              ? [1, 2, 3].map((i) => <RowSkeleton key={i} />)
               : top3Constructors.map((c) => (
                   <ConstructorRow key={c.constructorId} c={c} highlight={false} />
                 ))}
-            {showMyTeam && <ConstructorRow c={myTeamData} highlight={true} />}
+
+            {/* Positions 4+ — animated */}
+            <div className={`grid transition-all duration-300 ${showAllConstructors ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+              <div className="overflow-hidden space-y-0.5">
+                {constructors.slice(3).map((c) => (
+                  <ConstructorRow key={c.constructorId} c={c} highlight={c.constructorId === myTeam} />
+                ))}
+              </div>
+            </div>
+
+            {/* User's team pinned below — only when collapsed and outside top 3 */}
+            {!showAllConstructors && showMyTeam && (
+              <ConstructorRow c={myTeamData} highlight={true} />
+            )}
           </div>
-          <button className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors py-2 mt-1 border-t border-slate-800">
-            View all ›
+
+          <button
+            onClick={() => setShowAllConstructors((v) => !v)}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors py-2 mt-1 border-t border-slate-800 disabled:opacity-0"
+          >
+            {showAllConstructors ? "Show less" : "View all constructors"}
+            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showAllConstructors ? "rotate-180" : ""}`} />
           </button>
         </div>
+
       </div>
     </div>
   );
