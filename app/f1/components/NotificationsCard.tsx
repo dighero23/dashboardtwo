@@ -21,6 +21,7 @@ const ITEMS: NotifItem[] = [
 
 interface Props {
   user: User | null;
+  canEdit: boolean;
   prefs: F1NotificationPrefs;
   onToggle: (key: keyof F1NotificationPrefs, value: boolean) => void;
   onLoginRequest: () => void;
@@ -44,7 +45,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
   );
 }
 
-export default function NotificationsCard({ user, prefs, onToggle, onLoginRequest }: Props) {
+export default function NotificationsCard({ user, canEdit, prefs, onToggle, onLoginRequest }: Props) {
   return (
     <div>
       <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-medium">
@@ -65,8 +66,13 @@ export default function NotificationsCard({ user, prefs, onToggle, onLoginReques
             <LogIn className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" />
           </div>
         </button>
+      ) : !canEdit ? (
+        /* ── No permission ── */
+        <div className="rounded-xl bg-slate-800/40 border border-slate-700/60 px-4 py-3.5">
+          <p className="text-sm text-slate-500">F1 notifications not enabled for your account.</p>
+        </div>
       ) : (
-        /* ── Expanded state — logged in ── */
+        /* ── Expanded state — logged in with permission ── */
         <>
           <div className="flex justify-end mb-2">
             <PushSubscribeButton mobile />

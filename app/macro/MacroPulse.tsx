@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
 import type { IndicatorsResponse, MacroEvent, MacroNotificationPrefs } from "@/lib/macro/types";
 import NotificationsCard from "./components/NotificationsCard";
@@ -134,10 +134,9 @@ const NOTIF_DEFAULTS: MacroNotificationPrefs = {
 };
 
 export default function MacroPulse() {
-  // Auth
-  const [user,        setUser]        = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [showLogin,   setShowLogin]   = useState(false);
+  // Auth + permissions
+  const { user, loading: authLoading, canEditMacro } = usePermissions();
+  const [showLogin, setShowLogin] = useState(false);
 
   // Notification prefs
   const [notifPrefs, setNotifPrefs] = useState<MacroNotificationPrefs>(NOTIF_DEFAULTS);
@@ -149,26 +148,14 @@ export default function MacroPulse() {
   const [refreshing, setRefreshing] = useState(false);
 
   // ── Auth ────────────────────────────────────────────────────────────────────
+  // ── Load notification prefs when user has Macro access ──────────────────
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setAuthLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // ── Load notification prefs from API when authenticated ──────────────────
-  useEffect(() => {
-    if (!user) return;
+    if (!user || !canEditMacro) return;
     fetch("/api/macro/notifications")
       .then((r) => r.json())
       .then((p: MacroNotificationPrefs) => setNotifPrefs(p))
       .catch(() => {});
-  }, [user]);
+  }, [user, canEditMacro]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -179,7 +166,7 @@ export default function MacroPulse() {
     async (key: keyof MacroNotificationPrefs, value: boolean) => {
       const newPrefs = { ...notifPrefs, [key]: value };
       setNotifPrefs(newPrefs);
-      if (user) {
+      if (canEditMacro) {
         await fetch("/api/macro/notifications", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -187,7 +174,7 @@ export default function MacroPulse() {
         });
       }
     },
-    [notifPrefs, user]
+    [notifPrefs, canEditMacro]
   );
 
   const load = useCallback(async () => {
@@ -575,6 +562,7 @@ export default function MacroPulse() {
         {/* ── Notifications ───────────────────────────────────────────────── */}
         <NotificationsCard
           user={user}
+          canEdit={canEditMacro}
           prefs={notifPrefs}
           onToggle={handleNotifToggle}
           onLoginRequest={() => setShowLogin(true)}

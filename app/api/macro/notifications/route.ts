@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { checkPermission } from "@/lib/permissions";
 import type { MacroNotificationPrefs } from "@/lib/macro/types";
 
 const DEFAULTS: MacroNotificationPrefs = {
@@ -43,6 +44,9 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const canEdit = await checkPermission(user.id, "can_edit_macro");
+  if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json() as Partial<MacroNotificationPrefs>;
 

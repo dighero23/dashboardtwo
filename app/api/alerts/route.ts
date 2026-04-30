@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { checkPermission } from "@/lib/permissions";
 
 // GET /api/alerts — authenticated, returns all alerts for the current user
 export async function GET() {
@@ -17,7 +18,7 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
-// POST /api/alerts — authenticated, creates a new alert
+// POST /api/alerts — requires can_edit_stocks permission
 // Body: { ticker_id, target_price, comment? }
 // Implements unified alert/target model:
 //   - If this is the first alert for the ticker → is_display_target = true
@@ -26,6 +27,9 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const canEdit = await checkPermission(user.id, "can_edit_stocks");
+  if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const { ticker_id, target_price, comment } = body;

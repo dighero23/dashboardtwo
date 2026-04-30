@@ -2,6 +2,8 @@ import { createAdminClient } from "./supabase/server";
 import { fetchQuotes, fetchAllAth } from "./yahoo";
 import { fetchAllEarnings } from "./finnhub";
 
+const ADMIN_UID = "3ae2a968-1613-480f-a351-e6d78324aacb";
+
 export interface AlertData {
   id: string;
   tickerId: string;
@@ -56,10 +58,12 @@ function daysUntil(isoDate: string | null): number | null {
 
 /**
  * Build ticker data reading from price_cache (fast path, no Yahoo call).
- * Used by GET /api/tickers — returns cached prices immediately.
+ * userId = authenticated user's ID → their own tickers + their own alerts
+ * userId = null/undefined        → admin's tickers (public default), no alerts
  */
-export async function buildFromCache(): Promise<TickersResponse> {
+export async function buildFromCache(userId?: string | null): Promise<TickersResponse> {
   const db = createAdminClient();
+  const ownerId = userId ?? ADMIN_UID;
 
   const { data: rows, error } = await db
     .from("tickers")
@@ -68,6 +72,7 @@ export async function buildFromCache(): Promise<TickersResponse> {
       price_cache ( current_price, change_pct, ath_3y, ath_pct, earnings_date, updated_at ),
       alerts ( id, ticker_id, user_id, target_price, comment, is_display_target, status, triggered_at, cooldown_until )
     `)
+    .eq("user_id", ownerId)
     .order("sort_order");
 
   if (error) throw new Error(`Supabase tickers query failed: ${error.message}`);
@@ -79,7 +84,9 @@ export async function buildFromCache(): Promise<TickersResponse> {
     // Supabase returns joined tables as objects (one-to-one) or arrays (one-to-many)
     const cache = Array.isArray(row.price_cache) ? row.price_cache[0] : row.price_cache;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawAlerts: AlertData[] = ((row.alerts as any[] | null) ?? []).map((a: any) => ({
+    const rawAlerts: AlertData[] = ((row.alerts as any[] | null) ?? [])
+      .filter((a: any) => userId != null && a.user_id === userId)
+      .map((a: any) => ({
       id: a.id as string,
       tickerId: a.ticker_id as string,
       targetPrice: a.target_price as number,

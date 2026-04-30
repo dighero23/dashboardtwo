@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { TickerData, TickersResponse } from "@/lib/buildTickerData";
 import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "./components/LoginModal";
 import AddTickerModal from "./components/AddTickerModal";
 import AlertPanel from "./components/AlertPanel";
@@ -99,10 +99,10 @@ function sortTickers(data: TickerData[], key: SortKey, dir: SortDir): TickerData
 
 // ─── Skeleton components ──────────────────────────────────────────────────────
 
-function SkeletonRow() {
+function SkeletonRow({ cols }: { cols: number }) {
   return (
     <tr className="animate-pulse">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3.5">
           <div className="h-4 bg-slate-700/60 rounded w-full" />
         </td>
@@ -142,6 +142,9 @@ const COLUMNS: { key: SortKey; label: string; align: string }[] = [
   { key: "earningsDays", label: "Earnings",     align: "text-right" },
 ];
 
+// Public default — Magnificent 7 only
+const MAG7 = new Set(["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"]);
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function StockTracker() {
@@ -151,9 +154,8 @@ export default function StockTracker() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdatedISO, setLastUpdatedISO] = useState<string | null>(null);
 
-  // Auth
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // Auth + permissions
+  const { user, loading: authLoading, canEditStocks } = usePermissions();
 
   // UI state
   const [timezone, setTimezone] = useState<Timezone>("CST");
@@ -173,18 +175,6 @@ export default function StockTracker() {
   const [swipeDisplay, setSwipeDisplay] = useState<{ id: string; offset: number } | null>(null);
   // undefined = closed, null = open (list view), "id" = open for specific ticker
 
-  // ── Auth setup ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setAuthLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   // ── Preferences ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -236,6 +226,15 @@ export default function StockTracker() {
   const marketStatus = useMemo(() => getMarketStatus(now), [now]);
   const currentTime = useMemo(() => formatTime(now, timezone), [now, timezone]);
   const sorted = useMemo(() => sortTickers(tickers, sortKey, sortDir), [tickers, sortKey, sortDir]);
+
+  const visibleColumns = useMemo(
+    () => canEditStocks ? COLUMNS : COLUMNS.filter((c) => c.key !== "targetPrice" && c.key !== "targetPct"),
+    [canEditStocks]
+  );
+  const displayTickers = useMemo(
+    () => canEditStocks ? sorted : sorted.filter((t) => MAG7.has(t.symbol)),
+    [canEditStocks, sorted]
+  );
 
   const lastUpdatedDisplay = useMemo(() => {
     if (!lastUpdatedISO) return null;
@@ -299,7 +298,7 @@ export default function StockTracker() {
           <h1 className="font-semibold text-white text-sm sm:text-base">Stock Tracker</h1>
 
           <div className="flex items-center gap-2">
-            {!authLoading && user && (
+            {!authLoading && canEditStocks && (
               <>
                 <button
                   onClick={() => setShowAddTicker(true)}
@@ -315,6 +314,10 @@ export default function StockTracker() {
                   <Bell className="w-3.5 h-3.5" />
                   Alerts
                 </button>
+              </>
+            )}
+            {!authLoading && user && (
+              <>
                 <PushSubscribeButton />
                 <button
                   onClick={handleLogout}
@@ -411,7 +414,7 @@ export default function StockTracker() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700/80 bg-slate-800/60">
-                  {COLUMNS.map((col) => (
+                  {visibleColumns.map((col) => (
                     <th
                       key={col.key}
                       onClick={() => handleSort(col.key)}
@@ -423,15 +426,16 @@ export default function StockTracker() {
                       </span>
                     </th>
                   ))}
-                  {/* Bell + Delete columns — only when authenticated */}
-                  <th className="px-4 py-3 w-10" />
-                  {user && <th className="px-2 py-3 w-8" />}
+                  {canEditStocks && <th className="px-4 py-3 w-10" />}
+                  {canEditStocks && <th className="px-2 py-3 w-8" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {loading
-                  ? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-                  : sorted.map((ticker) => {
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <SkeletonRow key={i} cols={visibleColumns.length + (canEditStocks ? 2 : 0)} />
+                    ))
+                  : displayTickers.map((ticker) => {
                       const badge = earningsBadge(ticker.earningsDate, ticker.earningsDays);
                       const proxColor = proximityColor(ticker.targetPct);
                       return (
@@ -455,14 +459,18 @@ export default function StockTracker() {
                           <td className={`px-4 py-3 text-right font-mono ${pctColor(ticker.athPct)}`}>
                             {formatPct(ticker.athPct, true)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-slate-300">
-                            {ticker.targetPrice !== null
-                              ? `$${formatPrice(ticker.targetPrice)}`
-                              : <span className="text-slate-600">—</span>}
-                          </td>
-                          <td className={`px-4 py-3 text-right font-mono ${pctColor(ticker.targetPct)}`}>
-                            {formatPct(ticker.targetPct, true)}
-                          </td>
+                          {canEditStocks && (
+                            <td className="px-4 py-3 text-right font-mono text-slate-300">
+                              {ticker.targetPrice !== null
+                                ? `$${formatPrice(ticker.targetPrice)}`
+                                : <span className="text-slate-600">—</span>}
+                            </td>
+                          )}
+                          {canEditStocks && (
+                            <td className={`px-4 py-3 text-right font-mono ${pctColor(ticker.targetPct)}`}>
+                              {formatPct(ticker.targetPct, true)}
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-right">
                             {badge ? (
                               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -476,23 +484,23 @@ export default function StockTracker() {
                               <span className="text-slate-600 text-xs">—</span>
                             )}
                           </td>
-                          {/* Bell icon — always visible; prompts login if not authed */}
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => user ? setAlertPanelTickerId(ticker.id) : setShowLogin(true)}
-                              className={`p-1 rounded transition-all ${
-                                ticker.hasAlert
-                                  ? "text-amber-400"
-                                  : user
-                                    ? "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400"
-                                    : "opacity-0 group-hover:opacity-100 text-slate-600 hover:text-slate-400"
-                              }`}
-                            >
-                              <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
-                            </button>
-                          </td>
-                          {/* Delete — auth only */}
-                          {user && (
+                          {/* Bell icon — only for editors */}
+                          {canEditStocks && (
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => setAlertPanelTickerId(ticker.id)}
+                                className={`p-1 rounded transition-all ${
+                                  ticker.hasAlert
+                                    ? "text-amber-400"
+                                    : "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400"
+                                }`}
+                              >
+                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
+                              </button>
+                            </td>
+                          )}
+                          {/* Delete — canEditStocks only */}
+                          {canEditStocks && (
                             <td className="px-2 py-3 text-center">
                               <button
                                 onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
@@ -515,9 +523,9 @@ export default function StockTracker() {
               Proximity: <span className="text-emerald-500">&gt;5%</span> ·{" "}
               <span className="text-amber-400">2–5%</span> ·{" "}
               <span className="text-red-500">&lt;2%</span>
-              {user && " · Bell on hover to manage alerts"}
+              {canEditStocks && " · Bell on hover to manage alerts"}
             </p>
-            {user && !loading && (
+            {canEditStocks && !loading && (
               <button
                 onClick={() => setShowAddTicker(true)}
                 className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-400 transition-colors"
@@ -531,24 +539,28 @@ export default function StockTracker() {
 
         {/* ── MOBILE CARDS ── */}
         <div className="md:hidden">
-          {/* Mobile action bar (auth) */}
-          {user && !loading && (
+          {/* Mobile action bar */}
+          {!loading && (canEditStocks || user) && (
             <div className="flex flex-wrap gap-2 mb-3">
-              <button
-                onClick={() => setShowAddTicker(true)}
-                className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add ticker
-              </button>
-              <button
-                onClick={() => setAlertPanelTickerId(null)}
-                className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                <Bell className="w-3.5 h-3.5" />
-                Alerts
-              </button>
-              <PushSubscribeButton mobile />
+              {canEditStocks && (
+                <>
+                  <button
+                    onClick={() => setShowAddTicker(true)}
+                    className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 rounded-lg px-3 py-1.5 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add ticker
+                  </button>
+                  <button
+                    onClick={() => setAlertPanelTickerId(null)}
+                    className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    Alerts
+                  </button>
+                </>
+              )}
+              {user && <PushSubscribeButton mobile />}
             </div>
           )}
 
@@ -566,7 +578,7 @@ export default function StockTracker() {
                 }}
                 className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg pl-3 pr-8 py-1.5 appearance-none focus:outline-none focus:border-slate-500"
               >
-                {COLUMNS.flatMap((col) => [
+                {visibleColumns.flatMap((col) => [
                   <option key={`${col.key}:asc`} value={`${col.key}:asc`}>{col.label} ↑</option>,
                   <option key={`${col.key}:desc`} value={`${col.key}:desc`}>{col.label} ↓</option>,
                 ])}
@@ -579,19 +591,19 @@ export default function StockTracker() {
           <div className="space-y-2">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-              : sorted.map((ticker) => {
+              : displayTickers.map((ticker) => {
                   const badge = earningsBadge(ticker.earningsDate, ticker.earningsDays);
                   const proxColor = proximityColor(ticker.targetPct);
-                  const hasSecondary = ticker.targetPrice !== null || badge !== null;
+                  const hasSecondary = (canEditStocks && ticker.targetPrice !== null) || badge !== null;
 
                   return (
                     <div
                       key={ticker.id}
                       className="relative rounded-xl overflow-hidden"
-                      onTouchStart={user ? (e) => {
+                      onTouchStart={canEditStocks ? (e) => {
                         swipeRef.current = { id: ticker.id, startX: e.touches[0].clientX, startY: e.touches[0].clientY, offset: 0, isH: false };
                       } : undefined}
-                      onTouchMove={user ? (e) => {
+                      onTouchMove={canEditStocks ? (e) => {
                         const s = swipeRef.current;
                         if (!s || s.id !== ticker.id) return;
                         const dx = s.startX - e.touches[0].clientX;
@@ -603,13 +615,13 @@ export default function StockTracker() {
                         }
                         if (dx > 0) { s.offset = Math.min(dx, 110); setSwipeDisplay({ id: s.id, offset: s.offset }); }
                       } : undefined}
-                      onTouchEnd={user ? () => {
+                      onTouchEnd={canEditStocks ? () => {
                         const s = swipeRef.current;
                         swipeRef.current = null;
                         setSwipeDisplay(null);
                         if (s && s.id === ticker.id && s.offset > 80) handleDeleteTicker(ticker.id, ticker.symbol);
                       } : undefined}
-                      onTouchCancel={user ? () => { swipeRef.current = null; setSwipeDisplay(null); } : undefined}
+                      onTouchCancel={canEditStocks ? () => { swipeRef.current = null; setSwipeDisplay(null); } : undefined}
                     >
                       {/* Red delete band — revealed by swiping left */}
                       <div
@@ -634,9 +646,9 @@ export default function StockTracker() {
 
                         {/* Row 1: 🔔 · Ticker · spacer · Price  Change% · [trash] */}
                         <div className="flex items-center gap-2">
-                          {/* Bell — always visible; clickable only when authed */}
-                          <div className="flex-shrink-0">
-                            {user ? (
+                          {/* Bell — editors only; spacer preserves layout alignment */}
+                          <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center">
+                            {canEditStocks && (
                               <button
                                 onClick={() => setAlertPanelTickerId(ticker.id)}
                                 className={`flex items-center justify-center w-7 h-7 transition-colors ${
@@ -644,13 +656,6 @@ export default function StockTracker() {
                                     ? "text-amber-400"
                                     : "text-slate-500 hover:text-amber-400 active:text-amber-300"
                                 }`}
-                              >
-                                <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => setShowLogin(true)}
-                                className={`flex items-center justify-center w-7 h-7 ${ticker.hasAlert ? "text-amber-400" : "text-slate-600"}`}
                               >
                                 <Bell className={`w-4 h-4 ${ticker.hasAlert ? "fill-current" : ""}`} />
                               </button>
@@ -672,8 +677,8 @@ export default function StockTracker() {
                             {formatPct(ticker.changePct, true)}
                           </span>
 
-                          {/* Delete — auth only */}
-                          {user && (
+                          {/* Delete — canEditStocks only */}
+                          {canEditStocks && (
                             <button
                               onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
                               className="flex-shrink-0 text-slate-700 hover:text-red-400 transition-colors ml-0.5"
@@ -691,7 +696,7 @@ export default function StockTracker() {
                         {/* Row 3: Target · vs Target · ER — dot-separated, same size */}
                         {hasSecondary && (
                           <div className="flex items-center mt-2 pl-9 text-xs text-slate-400 gap-0">
-                            {ticker.targetPrice !== null && (
+                            {canEditStocks && ticker.targetPrice !== null && (
                               <>
                                 <span>
                                   Target:{" "}
@@ -710,7 +715,7 @@ export default function StockTracker() {
                             )}
                             {badge && (
                               <>
-                                {ticker.targetPrice !== null && (
+                                {canEditStocks && ticker.targetPrice !== null && (
                                   <span className="mx-1.5 text-slate-700">·</span>
                                 )}
                                 <span className={badge.urgent ? "text-red-400 font-medium" : ""}>

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFromCache } from "@/lib/buildTickerData";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { checkPermission } from "@/lib/permissions";
 
-// GET /api/tickers — public, reads from Supabase price_cache
+// GET /api/tickers — public; returns the authed user's tickers, or admin's public set
 export async function GET() {
   try {
-    const data = await buildFromCache();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const data = await buildFromCache(user?.id ?? null);
     return NextResponse.json(data);
   } catch (err) {
     console.error("[GET /api/tickers]", err);
@@ -13,11 +16,14 @@ export async function GET() {
   }
 }
 
-// POST /api/tickers — authenticated, adds a new ticker
+// POST /api/tickers — requires can_edit_stocks permission
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const canEdit = await checkPermission(user.id, "can_edit_stocks");
+  if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const symbol: string = (body.symbol ?? "").toUpperCase().trim();
@@ -27,10 +33,21 @@ export async function POST(req: NextRequest) {
 
   const db = createAdminClient();
 
-  // Get current max sort_order
+  // Enforce 50-ticker limit per user
+  const { count } = await db
+    .from("tickers")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if ((count ?? 0) >= 50) {
+    return NextResponse.json({ error: "Ticker limit reached (max 50)" }, { status: 400 });
+  }
+
+  // Max sort_order for this user
   const { data: maxRow } = await db
     .from("tickers")
     .select("sort_order")
+    .eq("user_id", user.id)
     .order("sort_order", { ascending: false })
     .limit(1)
     .single();
@@ -39,13 +56,13 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await db
     .from("tickers")
-    .insert({ symbol, name: name || null, sort_order: sortOrder })
+    .insert({ symbol, name: name || null, sort_order: sortOrder, user_id: user.id })
     .select()
     .single();
 
   if (error) {
     const msg = error.code === "23505"
-      ? `Ticker ${symbol} already exists`
+      ? `${symbol} is already in your watchlist`
       : error.message;
     return NextResponse.json({ error: msg }, { status: 400 });
   }

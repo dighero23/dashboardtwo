@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Flag, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
 import type {
   NextRaceResponse,
@@ -33,9 +33,8 @@ const NOTIF_DEFAULTS: F1NotificationPrefs = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function F1Module() {
-  // Auth
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // Auth + permissions
+  const { user, loading: authLoading, canEditF1 } = usePermissions();
   const [showLogin, setShowLogin] = useState(false);
 
   // Preferences
@@ -52,27 +51,14 @@ export default function F1Module() {
   const [seasons,   setSeasons]   = useState<number[]>([new Date().getFullYear()]);
   const [selectedSeason, setSelectedSeason] = useState(new Date().getFullYear());
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // ── Load notification prefs when user has F1 access ──────────────────────
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setAuthLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // ── Load notification prefs from API when authenticated ───────────────────
-  useEffect(() => {
-    if (!user) return;
+    if (!user || !canEditF1) return;
     fetch("/api/f1/notifications")
       .then((r) => r.json())
       .then((p: F1NotificationPrefs) => setNotifPrefs(p))
       .catch(() => {});
-  }, [user]);
+  }, [user, canEditF1]);
 
   // ── Hydrate localStorage preferences (client-only) ────────────────────────
   useEffect(() => {
@@ -153,7 +139,7 @@ export default function F1Module() {
     async (key: keyof F1NotificationPrefs, value: boolean) => {
       const newPrefs = { ...notifPrefs, [key]: value };
       setNotifPrefs(newPrefs);
-      if (user) {
+      if (canEditF1) {
         await fetch("/api/f1/notifications", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -163,7 +149,7 @@ export default function F1Module() {
         localStorage.setItem("f1-notif-prefs", JSON.stringify(newPrefs));
       }
     },
-    [notifPrefs, user]
+    [notifPrefs, canEditF1]
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -263,6 +249,7 @@ export default function F1Module() {
         {/* Notifications */}
         <NotificationsCard
           user={user}
+          canEdit={canEditF1}
           prefs={notifPrefs}
           onToggle={handleNotifToggle}
           onLoginRequest={() => setShowLogin(true)}
