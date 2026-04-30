@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TrendingUp, Flag, BarChart3, ChevronRight, Zap, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { checkAdmin } from "@/lib/permissions";
+import HomeAuthButton from "./HomeAuthButton";
 
 const modules = [
   {
@@ -143,8 +144,13 @@ export default async function Home() {
         </div>
       )}
 
+      {/* Auth */}
+      <div className="mt-8">
+        <HomeAuthButton />
+      </div>
+
       {/* Footer */}
-      <p className="mt-10 text-slate-600 text-xs">
+      <p className="mt-4 text-slate-600 text-xs">
         JD Dashboard 2.0 — Phase 1
       </p>
     </main>
