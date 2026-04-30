@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn, LogOut } from "lucide-react";
+import { BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
@@ -226,10 +226,9 @@ export default function MacroPulse() {
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
+            ← Home
           </Link>
 
           <div className="flex items-center gap-2">

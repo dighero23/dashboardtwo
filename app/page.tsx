@@ -45,7 +45,11 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   const isAdmin = user ? await checkAdmin(user.id) : false;
   return (
-    <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-start px-4 pt-16 pb-10 sm:pt-20">
+    <main className="relative min-h-screen bg-slate-900 flex flex-col items-center justify-start px-4 pt-16 pb-10 sm:pt-20">
+      {/* Auth button — top right */}
+      <div className="absolute top-4 right-4">
+        <HomeAuthButton />
+      </div>
       {/* Header */}
       <div className="text-center mb-10">
         {/* Lightning bolt logo */}
@@ -144,15 +148,6 @@ export default async function Home() {
         </div>
       )}
 
-      {/* Auth */}
-      <div className="mt-8">
-        <HomeAuthButton />
-      </div>
-
-      {/* Footer */}
-      <p className="mt-4 text-slate-600 text-xs">
-        JD Dashboard 2.0 — Phase 1
-      </p>
     </main>
   );
 }

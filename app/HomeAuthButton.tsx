@@ -17,17 +17,17 @@ export default function HomeAuthButton() {
       {user ? (
         <button
           onClick={() => createClient().auth.signOut()}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-400 transition-colors"
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-red-400 transition-colors border border-slate-700/60 bg-slate-800/60 rounded-lg px-3 py-1.5"
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-4 h-4" />
           Sign out
         </button>
       ) : (
         <button
           onClick={() => setShowLogin(true)}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors border border-slate-700/60 bg-slate-800/60 rounded-lg px-3 py-1.5"
         >
-          <LogIn className="w-3.5 h-3.5" />
+          <LogIn className="w-4 h-4" />
           Login
         </button>
       )}

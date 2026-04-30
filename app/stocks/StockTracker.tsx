@@ -8,7 +8,6 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
-  ArrowLeft,
   LogIn,
   LogOut,
   Circle,
@@ -290,9 +289,11 @@ export default function StockTracker() {
       {/* ── Top nav ── */}
       <nav className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-sm">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
+          <Link
+            href="/"
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
+          >
+            ← Home
           </Link>
 
           <h1 className="font-semibold text-white text-sm sm:text-base">Stock Tracker</h1>

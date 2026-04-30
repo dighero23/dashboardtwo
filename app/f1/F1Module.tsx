@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Flag, LogIn, LogOut } from "lucide-react";
+import { Flag, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
@@ -162,10 +162,9 @@ export default function F1Module() {
           {/* Back */}
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
+            ← Home
           </Link>
 
           {/* Title */}
@@ -176,7 +175,7 @@ export default function F1Module() {
             >
               <Flag className="w-3.5 h-3.5" style={{ color: "#fbbf24" }} />
             </div>
-            <span className="font-semibold text-white text-sm sm:text-base">Formula 1</span>
+            <span className="font-semibold text-white text-sm sm:text-base">F1</span>
           </div>
 
           {/* Right controls: timezone + auth */}
