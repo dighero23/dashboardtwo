@@ -8,6 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
 import type { IndicatorsResponse, MacroEvent, MacroNotificationPrefs } from "@/lib/macro/types";
 import NotificationsCard from "./components/NotificationsCard";
+import { ensurePushSubscribed } from "@/lib/subscribePush";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ function Skeleton({ h = "h-20" }: { h?: string }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const NOTIF_DEFAULTS: MacroNotificationPrefs = {
-  cpiRelease: true, fedDecision: true, gdpRelease: false, jobsReport: true, pceRelease: false,
+  cpiRelease: false, fedDecision: false, gdpRelease: false, jobsReport: false, pceRelease: false,
 };
 
 export default function MacroPulse() {
@@ -172,6 +173,7 @@ export default function MacroPulse() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newPrefs),
         });
+        if (value) await ensurePushSubscribed();
       }
     },
     [notifPrefs, canEditMacro]

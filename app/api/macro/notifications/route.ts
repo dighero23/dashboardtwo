@@ -4,10 +4,10 @@ import { checkPermission } from "@/lib/permissions";
 import type { MacroNotificationPrefs } from "@/lib/macro/types";
 
 const DEFAULTS: MacroNotificationPrefs = {
-  cpiRelease:  true,
-  fedDecision: true,
+  cpiRelease:  false,
+  fedDecision: false,
   gdpRelease:  false,
-  jobsReport:  true,
+  jobsReport:  false,
   pceRelease:  false,
 };
 

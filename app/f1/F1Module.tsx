@@ -14,6 +14,7 @@ import type {
   F1NotificationPrefs,
 } from "@/lib/f1/types";
 import { type Timezone } from "./constants";
+import { ensurePushSubscribed } from "@/lib/subscribePush";
 import LastRaceCard       from "./components/LastRaceCard";
 import NextRaceCard       from "./components/NextRaceCard";
 import UpcomingList       from "./components/UpcomingList";
@@ -27,7 +28,7 @@ import NotificationsCard  from "./components/NotificationsCard";
 interface MyPick { id: string; name: string; }
 
 const NOTIF_DEFAULTS: F1NotificationPrefs = {
-  weekAhead: true, preQuali: true, qualiResult: true, preRace: true, raceResult: false,
+  weekAhead: false, preQuali: false, qualiResult: false, preRace: false, raceResult: false,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ export default function F1Module() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newPrefs),
         });
+        if (value) await ensurePushSubscribed();
       } else {
         localStorage.setItem("f1-notif-prefs", JSON.stringify(newPrefs));
       }

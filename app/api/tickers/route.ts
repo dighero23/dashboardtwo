@@ -3,6 +3,8 @@ import { buildFromCache } from "@/lib/buildTickerData";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { checkPermission } from "@/lib/permissions";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/tickers — public; returns the authed user's tickers, or admin's public set
 export async function GET() {
   try {

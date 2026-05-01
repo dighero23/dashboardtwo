@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { fetchAndCachePrices, buildFromCache } from "@/lib/buildTickerData";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/refresh — throttled client-side (60s)
 // Fetches fresh prices for all tickers, then returns the caller's subset.
 export async function POST() {

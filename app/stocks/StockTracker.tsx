@@ -200,7 +200,13 @@ export default function StockTracker() {
     }
   }, []);
 
-  useEffect(() => { loadTickers(); }, [loadTickers]);
+  // Reload whenever auth settles or the active user changes (login / logout)
+  useEffect(() => {
+    if (authLoading) return;
+    setLoading(true);
+    setTickers([]);
+    loadTickers();
+  }, [loadTickers, user, authLoading]);
 
   // ── Auto-refresh every 60s (silent background poll) ─────────────────────────
   useEffect(() => {

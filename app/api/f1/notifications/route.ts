@@ -4,10 +4,10 @@ import { checkPermission } from "@/lib/permissions";
 import type { F1NotificationPrefs } from "@/lib/f1/types";
 
 const DEFAULTS: F1NotificationPrefs = {
-  weekAhead: true,
-  preQuali: true,
-  qualiResult: true,
-  preRace: true,
+  weekAhead: false,
+  preQuali: false,
+  qualiResult: false,
+  preRace: false,
   raceResult: false,
 };
 
