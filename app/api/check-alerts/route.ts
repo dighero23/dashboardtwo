@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/webpush";
 import { checkF1Notifications } from "@/lib/f1/checkF1Notifications";
 import { checkMacroNotifications } from "@/lib/macro/checkMacroNotifications";
+import { checkHealthNotifications } from "@/lib/health/checkHealthNotifications";
 
 // GET /api/check-alerts — cron target (cron-job.org, every 1 min)
 // 1. Fetch fresh prices → write to price_cache
@@ -116,6 +117,11 @@ export async function GET(req: NextRequest) {
     // 6. Check macro push notifications (non-blocking)
     await checkMacroNotifications().catch((err) =>
       console.error("[check-alerts] Macro notifications error:", err)
+    );
+
+    // 7. Check health push notifications (non-blocking)
+    await checkHealthNotifications().catch((err) =>
+      console.error("[check-alerts] Health notifications error:", err)
     );
 
     return NextResponse.json({

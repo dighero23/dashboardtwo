@@ -11,15 +11,17 @@ export interface PermissionsState {
   canEditStocks: boolean;
   canEditF1: boolean;
   canEditMacro: boolean;
+  canEditHealth: boolean;
 }
 
 export function usePermissions(): PermissionsState {
-  const [user, setUser]                   = useState<User | null>(null);
-  const [loading, setLoading]             = useState(true);
-  const [isAdmin, setIsAdmin]             = useState(false);
-  const [canEditStocks, setCanEditStocks] = useState(false);
-  const [canEditF1, setCanEditF1]         = useState(false);
-  const [canEditMacro, setCanEditMacro]   = useState(false);
+  const [user, setUser]                     = useState<User | null>(null);
+  const [loading, setLoading]               = useState(true);
+  const [isAdmin, setIsAdmin]               = useState(false);
+  const [canEditStocks, setCanEditStocks]   = useState(false);
+  const [canEditF1, setCanEditF1]           = useState(false);
+  const [canEditMacro, setCanEditMacro]     = useState(false);
+  const [canEditHealth, setCanEditHealth]   = useState(false);
 
   // Auth subscription
   useEffect(() => {
@@ -36,6 +38,7 @@ export function usePermissions(): PermissionsState {
         setCanEditStocks(false);
         setCanEditF1(false);
         setCanEditMacro(false);
+        setCanEditHealth(false);
       }
     });
     return () => subscription.unsubscribe();
@@ -48,6 +51,7 @@ export function usePermissions(): PermissionsState {
       setCanEditStocks(false);
       setCanEditF1(false);
       setCanEditMacro(false);
+      setCanEditHealth(false);
       return;
     }
     fetch("/api/auth/permissions")
@@ -58,9 +62,10 @@ export function usePermissions(): PermissionsState {
         setCanEditStocks(admin || p?.can_edit_stocks === true);
         setCanEditF1(admin || p?.can_edit_f1 === true);
         setCanEditMacro(admin || p?.can_edit_macro === true);
+        setCanEditHealth(admin || p?.can_edit_health === true);
       })
       .catch(() => {});
   }, [user]);
 
-  return { user, loading, isAdmin, canEditStocks, canEditF1, canEditMacro };
+  return { user, loading, isAdmin, canEditStocks, canEditF1, canEditMacro, canEditHealth };
 }

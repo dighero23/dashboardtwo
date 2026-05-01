@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { checkAdmin } from "@/lib/permissions";
 
-const ALLOWED_KEYS = ["is_admin", "can_edit_stocks", "can_edit_f1", "can_edit_macro"] as const;
+const ALLOWED_KEYS = ["is_admin", "can_edit_stocks", "can_edit_f1", "can_edit_macro", "can_edit_health"] as const;
 type AllowedKey = (typeof ALLOWED_KEYS)[number];
 
 export async function PATCH(
@@ -36,7 +36,7 @@ export async function PATCH(
       { user_id: targetUserId, ...update, updated_at: new Date().toISOString() },
       { onConflict: "user_id" }
     )
-    .select("user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro")
+    .select("user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro, can_edit_health")
     .single();
 
   if (error) return NextResponse.json({ error: "Failed to update permissions" }, { status: 500 });

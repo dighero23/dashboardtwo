@@ -7,6 +7,7 @@ const DEFAULT_PERMS = {
   can_edit_stocks: false,
   can_edit_f1: false,
   can_edit_macro: false,
+  can_edit_health: false,
 };
 
 export async function GET() {

@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Shield, RefreshCw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro";
+type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health";
 
 interface Perms {
   is_admin: boolean;
   can_edit_stocks: boolean;
   can_edit_f1: boolean;
   can_edit_macro: boolean;
+  can_edit_health: boolean;
 }
 
 interface UserRow {
@@ -26,6 +27,7 @@ const PERM_COLS: { key: PermKey; label: string; color: string }[] = [
   { key: "can_edit_stocks", label: "Stocks", color: "#34d399" },
   { key: "can_edit_f1",     label: "F1",     color: "#fbbf24" },
   { key: "can_edit_macro",  label: "Macro",  color: "#60a5fa" },
+  { key: "can_edit_health", label: "Health", color: "#f87171" },
 ];
 
 function Toggle({
