@@ -3,6 +3,28 @@ import { fetchQuotes, fetchAllAth } from "./yahoo";
 import { fetchAllEarnings } from "./finnhub";
 
 const ADMIN_UID = "3ae2a968-1613-480f-a351-e6d78324aacb";
+const MAG7 = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"];
+
+export async function seedMag7ForUser(userId: string): Promise<void> {
+  const db = createAdminClient();
+  const { data: adminTickers } = await db
+    .from("tickers")
+    .select("symbol, name, sort_order")
+    .eq("user_id", ADMIN_UID)
+    .in("symbol", MAG7)
+    .order("sort_order");
+
+  if (!adminTickers || adminTickers.length === 0) return;
+
+  await db.from("tickers").insert(
+    adminTickers.map((t, i) => ({
+      symbol: t.symbol,
+      name: t.name,
+      sort_order: i + 1,
+      user_id: userId,
+    }))
+  );
+}
 
 export interface AlertData {
   id: string;

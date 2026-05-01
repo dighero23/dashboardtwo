@@ -141,8 +141,15 @@ const COLUMNS: { key: SortKey; label: string; align: string }[] = [
   { key: "earningsDays", label: "Earnings",     align: "text-right" },
 ];
 
-// Public default — Magnificent 7 only
-const MAG7 = new Set(["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"]);
+const GUEST_DEFAULT = [
+  { symbol: "AAPL",  name: "Apple Inc." },
+  { symbol: "MSFT",  name: "Microsoft Corp." },
+  { symbol: "GOOGL", name: "Alphabet Inc." },
+  { symbol: "AMZN",  name: "Amazon.com Inc." },
+  { symbol: "NVDA",  name: "NVIDIA Corp." },
+  { symbol: "META",  name: "Meta Platforms Inc." },
+  { symbol: "TSLA",  name: "Tesla Inc." },
+];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -185,7 +192,7 @@ export default function StockTracker() {
     } catch {}
   }, []);
 
-  // ── Initial data fetch ──────────────────────────────────────────────────────
+  // ── Authenticated: load from DB ─────────────────────────────────────────────
   const loadTickers = useCallback(async () => {
     try {
       const res = await fetch("/api/tickers");
@@ -200,19 +207,107 @@ export default function StockTracker() {
     }
   }, []);
 
-  // Reload whenever auth settles or the active user changes (login / logout)
+  // ── Guest: load from localStorage + quotes API ───────────────────────────────
+  const loadGuestTickers = useCallback(async () => {
+    try {
+      let watchlist: { symbol: string; name: string }[];
+      try {
+        const stored = localStorage.getItem("guest-watchlist");
+        if (stored) {
+          watchlist = JSON.parse(stored);
+        } else {
+          watchlist = GUEST_DEFAULT;
+          localStorage.setItem("guest-watchlist", JSON.stringify(watchlist));
+        }
+      } catch {
+        watchlist = GUEST_DEFAULT;
+      }
+      if (watchlist.length === 0) { setTickers([]); setLoading(false); return; }
+
+      const symbols = watchlist.map((w) => w.symbol).join(",");
+      const res = await fetch(`/api/quotes?symbols=${symbols}`);
+      const { quotes } = await res.json() as {
+        quotes: { symbol: string; name: string | null; price: number; changePct: number;
+                  ath3y: number | null; earningsDate: string | null; updatedAt: string | null }[]
+      };
+      const qMap = new Map(quotes.map((q) => [q.symbol, q]));
+      const now = new Date();
+      const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+      const data: TickerData[] = watchlist.map((w) => {
+        const q = qMap.get(w.symbol);
+        const price = q?.price ?? 0;
+        const ath3y = q?.ath3y ?? null;
+        const athPct = ath3y && ath3y > 0 ? ((price - ath3y) / ath3y) * 100 : null;
+        const earningsDate = q?.earningsDate ?? null;
+        let earningsDays: number | null = null;
+        if (earningsDate) {
+          const [y, m, d] = earningsDate.slice(0, 10).split("-").map(Number);
+          const days = Math.round((Date.UTC(y, m - 1, d) - utcToday) / 86_400_000);
+          earningsDays = days >= 0 ? days : null;
+        }
+        return {
+          id: w.symbol,
+          symbol: w.symbol,
+          name: w.name || q?.name || w.symbol,
+          price,
+          changePct: q?.changePct ?? 0,
+          ath3y,
+          athPct,
+          targetPrice: null,
+          targetPct: null,
+          earningsDate,
+          earningsDays,
+          hasAlert: false,
+          alerts: [],
+        };
+      });
+
+      setTickers(data);
+      const latest = quotes.find((q) => q.updatedAt)?.updatedAt ?? null;
+      setLastUpdatedISO(latest);
+    } catch {
+      setError("Failed to load price data.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── Reload on auth change ────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading) return;
     setLoading(true);
     setTickers([]);
-    loadTickers();
-  }, [loadTickers, user, authLoading]);
+    if (user) {
+      loadTickers();
+    } else {
+      loadGuestTickers();
+    }
+  }, [loadTickers, loadGuestTickers, user, authLoading]);
 
-  // ── Auto-refresh every 60s (silent background poll) ─────────────────────────
+  // ── Seed Mag7 for first-time authenticated users (once, localStorage flag) ───
   useEffect(() => {
-    const id = setInterval(loadTickers, 60_000);
+    if (!user || loading || tickers.length > 0) return;
+    const flagKey = `stocks-seeded-${user.id}`;
+    if (localStorage.getItem(flagKey)) return;
+    fetch("/api/tickers/seed", { method: "POST" })
+      .then((r) => r.json())
+      .then((data: TickersResponse) => {
+        if (data.tickers) {
+          localStorage.setItem(flagKey, "1");
+          setTickers(data.tickers);
+          setLastUpdatedISO(data.updatedAt);
+        }
+      })
+      .catch(() => {});
+  }, [user, loading, tickers.length]);
+
+  // ── Auto-refresh every 60s ───────────────────────────────────────────────────
+  useEffect(() => {
+    const fn = user ? loadTickers : loadGuestTickers;
+    const id = setInterval(fn, 60_000);
     return () => clearInterval(id);
-  }, [loadTickers]);
+  }, [loadTickers, loadGuestTickers, user]);
 
   // ── Clock ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -236,10 +331,7 @@ export default function StockTracker() {
     () => canEditStocks ? COLUMNS : COLUMNS.filter((c) => c.key !== "targetPrice" && c.key !== "targetPct"),
     [canEditStocks]
   );
-  const displayTickers = useMemo(
-    () => canEditStocks ? sorted : sorted.filter((t) => MAG7.has(t.symbol)),
-    [canEditStocks, sorted]
-  );
+  const displayTickers = sorted;
 
   const lastUpdatedDisplay = useMemo(() => {
     if (!lastUpdatedISO) return null;
@@ -265,6 +357,11 @@ export default function StockTracker() {
     if (refreshCooldown > 0 || isRefreshing) return;
     setIsRefreshing(true);
     try {
+      if (!user) {
+        await loadGuestTickers();
+        setRefreshCooldown(60);
+        return;
+      }
       const res = await fetch("/api/refresh", { method: "POST" });
       if (!res.ok) throw new Error();
       const data: TickersResponse = await res.json();
@@ -276,17 +373,27 @@ export default function StockTracker() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshCooldown, isRefreshing]);
+  }, [refreshCooldown, isRefreshing, user, loadGuestTickers]);
 
   const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
   }, []);
 
   const handleDeleteTicker = useCallback(async (id: string, symbol: string) => {
-    if (!confirm(`Remove ${symbol} from watchlist? This will also delete its alerts.`)) return;
-    await fetch(`/api/tickers/${id}`, { method: "DELETE" });
-    setTickers((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+    if (!confirm(`Remove ${symbol} from watchlist?${user ? " This will also delete its alerts." : ""}`)) return;
+    if (user) {
+      await fetch(`/api/tickers/${id}`, { method: "DELETE" });
+      setTickers((prev) => prev.filter((t) => t.id !== id));
+    } else {
+      // Guest mode: update localStorage
+      try {
+        const stored = localStorage.getItem("guest-watchlist");
+        const watchlist: { symbol: string; name: string }[] = stored ? JSON.parse(stored) : GUEST_DEFAULT;
+        localStorage.setItem("guest-watchlist", JSON.stringify(watchlist.filter((w) => w.symbol !== symbol)));
+      } catch {}
+      setTickers((prev) => prev.filter((t) => t.symbol !== symbol));
+    }
+  }, [user]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -305,23 +412,23 @@ export default function StockTracker() {
           <h1 className="font-semibold text-white text-sm sm:text-base">Stock Tracker</h1>
 
           <div className="flex items-center gap-2">
+            {!authLoading && user && (
+              <button
+                onClick={() => setShowAddTicker(true)}
+                className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-emerald-400 transition-colors border border-slate-700 hover:border-emerald-500/40 rounded-lg px-3 py-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add ticker
+              </button>
+            )}
             {!authLoading && canEditStocks && (
-              <>
-                <button
-                  onClick={() => setShowAddTicker(true)}
-                  className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-emerald-400 transition-colors border border-slate-700 hover:border-emerald-500/40 rounded-lg px-3 py-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add ticker
-                </button>
-                <button
-                  onClick={() => setAlertPanelTickerId(null)}
-                  className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 transition-colors border border-slate-700 hover:border-amber-500/40 rounded-lg px-3 py-1.5"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                  Alerts
-                </button>
-              </>
+              <button
+                onClick={() => setAlertPanelTickerId(null)}
+                className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 transition-colors border border-slate-700 hover:border-amber-500/40 rounded-lg px-3 py-1.5"
+              >
+                <Bell className="w-3.5 h-3.5" />
+                Alerts
+              </button>
             )}
             {!authLoading && user && (
               <>
@@ -434,13 +541,13 @@ export default function StockTracker() {
                     </th>
                   ))}
                   {canEditStocks && <th className="px-4 py-3 w-10" />}
-                  {canEditStocks && <th className="px-2 py-3 w-8" />}
+                  <th className="px-2 py-3 w-8" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {loading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                      <SkeletonRow key={i} cols={visibleColumns.length + (canEditStocks ? 2 : 0)} />
+                      <SkeletonRow key={i} cols={visibleColumns.length + (canEditStocks ? 1 : 0) + 1} />
                     ))
                   : displayTickers.map((ticker) => {
                       const badge = earningsBadge(ticker.earningsDate, ticker.earningsDays);
@@ -506,17 +613,14 @@ export default function StockTracker() {
                               </button>
                             </td>
                           )}
-                          {/* Delete — canEditStocks only */}
-                          {canEditStocks && (
-                            <td className="px-2 py-3 text-center">
-                              <button
-                                onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-400 p-1 rounded"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          )}
+                          <td className="px-2 py-3 text-center">
+                            <button
+                              onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-400 p-1 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -532,7 +636,7 @@ export default function StockTracker() {
               <span className="text-red-500">&lt;2%</span>
               {canEditStocks && " · Bell on hover to manage alerts"}
             </p>
-            {canEditStocks && !loading && (
+            {user && !loading && (
               <button
                 onClick={() => setShowAddTicker(true)}
                 className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-400 transition-colors"
@@ -547,27 +651,25 @@ export default function StockTracker() {
         {/* ── MOBILE CARDS ── */}
         <div className="md:hidden">
           {/* Mobile action bar */}
-          {!loading && (canEditStocks || user) && (
+          {!loading && user && (
             <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={() => setShowAddTicker(true)}
+                className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add ticker
+              </button>
               {canEditStocks && (
-                <>
-                  <button
-                    onClick={() => setShowAddTicker(true)}
-                    className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add ticker
-                  </button>
-                  <button
-                    onClick={() => setAlertPanelTickerId(null)}
-                    className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                    Alerts
-                  </button>
-                </>
+                <button
+                  onClick={() => setAlertPanelTickerId(null)}
+                  className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  Alerts
+                </button>
               )}
-              {user && <PushSubscribeButton mobile />}
+              <PushSubscribeButton mobile />
             </div>
           )}
 
@@ -607,10 +709,10 @@ export default function StockTracker() {
                     <div
                       key={ticker.id}
                       className="relative rounded-xl overflow-hidden"
-                      onTouchStart={canEditStocks ? (e) => {
+                      onTouchStart={(e) => {
                         swipeRef.current = { id: ticker.id, startX: e.touches[0].clientX, startY: e.touches[0].clientY, offset: 0, isH: false };
-                      } : undefined}
-                      onTouchMove={canEditStocks ? (e) => {
+                      }}
+                      onTouchMove={(e) => {
                         const s = swipeRef.current;
                         if (!s || s.id !== ticker.id) return;
                         const dx = s.startX - e.touches[0].clientX;
@@ -621,14 +723,14 @@ export default function StockTracker() {
                           s.isH = true;
                         }
                         if (dx > 0) { s.offset = Math.min(dx, 110); setSwipeDisplay({ id: s.id, offset: s.offset }); }
-                      } : undefined}
-                      onTouchEnd={canEditStocks ? () => {
+                      }}
+                      onTouchEnd={() => {
                         const s = swipeRef.current;
                         swipeRef.current = null;
                         setSwipeDisplay(null);
                         if (s && s.id === ticker.id && s.offset > 80) handleDeleteTicker(ticker.id, ticker.symbol);
-                      } : undefined}
-                      onTouchCancel={canEditStocks ? () => { swipeRef.current = null; setSwipeDisplay(null); } : undefined}
+                      }}
+                      onTouchCancel={() => { swipeRef.current = null; setSwipeDisplay(null); }}
                     >
                       {/* Red delete band — revealed by swiping left */}
                       <div
@@ -684,15 +786,12 @@ export default function StockTracker() {
                             {formatPct(ticker.changePct, true)}
                           </span>
 
-                          {/* Delete — canEditStocks only */}
-                          {canEditStocks && (
-                            <button
-                              onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
-                              className="flex-shrink-0 text-slate-700 hover:text-red-400 transition-colors ml-0.5"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteTicker(ticker.id, ticker.symbol)}
+                            className="flex-shrink-0 text-slate-700 hover:text-red-400 transition-colors ml-0.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
                         {/* Row 2: company name, indented to align with ticker */}

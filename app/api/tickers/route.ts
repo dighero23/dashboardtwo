@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFromCache } from "@/lib/buildTickerData";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { checkPermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +17,11 @@ export async function GET() {
   }
 }
 
-// POST /api/tickers — requires can_edit_stocks permission
+// POST /api/tickers — requires auth (any logged-in user manages their own watchlist)
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const canEdit = await checkPermission(user.id, "can_edit_stocks");
-  if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const symbol: string = (body.symbol ?? "").toUpperCase().trim();
