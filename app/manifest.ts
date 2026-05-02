@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "JD Dashboard",
     short_name: "JD Dashboard",
     description: "Stock tracker and personal finance dashboard",
-    start_url: "/stocks",
+    start_url: "/",
     display: "standalone",
     background_color: "#0f172a",
     theme_color: "#0f172a",
