@@ -7,6 +7,7 @@ const DEFAULT_PERMS = {
   can_edit_stocks: false,
   can_edit_f1: false,
   can_edit_macro: false,
+  can_edit_health: false,
 };
 
 export async function GET() {
@@ -25,7 +26,7 @@ export async function GET() {
 
   const { data: permsRows } = await db
     .from("user_permissions")
-    .select("user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro");
+    .select("user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro, can_edit_health");
 
   const permsMap = new Map((permsRows ?? []).map((p) => [p.user_id, p]));
 
@@ -38,10 +39,11 @@ export async function GET() {
       last_sign_in_at: u.last_sign_in_at ?? null,
       permissions: p
         ? {
-            is_admin: p.is_admin,
+            is_admin:        p.is_admin,
             can_edit_stocks: p.can_edit_stocks,
-            can_edit_f1: p.can_edit_f1,
-            can_edit_macro: p.can_edit_macro,
+            can_edit_f1:     p.can_edit_f1,
+            can_edit_macro:  p.can_edit_macro,
+            can_edit_health: p.can_edit_health,
           }
         : DEFAULT_PERMS,
     };

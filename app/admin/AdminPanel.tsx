@@ -195,72 +195,79 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* Column headers */}
-        {!loading && !error && users.length > 0 && (
-          <div className="flex items-center mb-2 pr-1">
-            <div className="flex-1" />
-            <div className="flex items-center gap-5">
-              {PERM_COLS.map(({ key, label, color }) => (
-                <span
-                  key={key}
-                  className="text-[10px] font-semibold uppercase tracking-wider w-9 text-center"
-                  style={{ color }}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* User rows */}
+        {/* Scrollable table: headers + rows */}
         {!loading && !error && (
-          <div className="space-y-2">
-            {users.map((u) => (
-              <div
-                key={u.id}
-                className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
-              >
-                {/* Avatar */}
-                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
-                  {(u.email?.[0] ?? "?").toUpperCase()}
-                </div>
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="min-w-[520px]">
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium truncate">
-                    {u.email ?? "(no email)"}
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Joined {fmt(u.created_at)}
-                    {u.last_sign_in_at && (
-                      <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
-                    )}
-                  </p>
+              {/* Column headers */}
+              {users.length > 0 && (
+                <div className="flex items-center mb-2 pr-1">
+                  <div className="flex-1" />
+                  <div className="flex items-center gap-6">
+                    {PERM_COLS.map(({ key, label, color }) => (
+                      <span
+                        key={key}
+                        className="text-[10px] font-semibold uppercase tracking-wider w-10 text-center"
+                        style={{ color }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                {/* Permission toggles */}
-                <div className="flex items-center gap-5 flex-shrink-0">
-                  {PERM_COLS.map(({ key, color }) => {
-                    const saveKey = `${u.id}:${key}`;
-                    return (
-                      <div key={key} className="w-9 flex justify-center">
-                        {saving.has(saveKey) ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                        ) : (
-                          <Toggle
-                            checked={u.permissions[key]}
-                            color={color}
-                            disabled={false}
-                            onChange={() => toggle(u.id, key, u.permissions[key])}
-                          />
+              {/* User rows */}
+              <div className="space-y-2">
+                {users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
+                  >
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
+                      {(u.email?.[0] ?? "?").toUpperCase()}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate">
+                        {u.email ?? "(no email)"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Joined {fmt(u.created_at)}
+                        {u.last_sign_in_at && (
+                          <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
                         )}
-                      </div>
-                    );
-                  })}
-                </div>
+                      </p>
+                    </div>
+
+                    {/* Permission toggles */}
+                    <div className="flex items-center gap-6 flex-shrink-0">
+                      {PERM_COLS.map(({ key, color }) => {
+                        const saveKey = `${u.id}:${key}`;
+                        return (
+                          <div key={key} className="w-10 flex justify-center">
+                            {saving.has(saveKey) ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                            ) : (
+                              <Toggle
+                                checked={u.permissions[key]}
+                                color={color}
+                                disabled={false}
+                                onChange={() => toggle(u.id, key, u.permissions[key])}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+
+            </div>
           </div>
         )}
 
