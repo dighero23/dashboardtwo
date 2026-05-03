@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Shield, RefreshCw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -69,10 +69,58 @@ function fmt(iso: string | null) {
 }
 
 export default function AdminPanel() {
-  const [users, setUsers]     = useState<UserRow[]>([]);
+  const [users,   setUsers]   = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-  const [saving, setSaving]   = useState<Set<string>>(new Set());
+  const [error,   setError]   = useState<string | null>(null);
+  const [saving,  setSaving]  = useState<Set<string>>(new Set());
+
+  // Scrollbar state
+  const scrollRef               = useRef<HTMLDivElement>(null);
+  const [scrollPct, setScrollPct] = useState(0);
+  const [thumbW,    setThumbW]    = useState(1);
+  const [canScroll, setCanScroll] = useState(false);
+
+  function updateThumb() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    const hasOverflow = overflow > 1;
+    setCanScroll(hasOverflow);
+    setThumbW(el.clientWidth / el.scrollWidth);
+    setScrollPct(hasOverflow ? el.scrollLeft / overflow : 0);
+  }
+
+  useEffect(() => {
+    updateThumb();
+    window.addEventListener("resize", updateThumb);
+    return () => window.removeEventListener("resize", updateThumb);
+  }, []);
+
+  // Recalculate when users load
+  useEffect(() => {
+    // Defer to next frame so the DOM has rendered the rows
+    requestAnimationFrame(updateThumb);
+  }, [users]);
+
+  function onThumbPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const startX    = e.clientX;
+    const startLeft = scrollRef.current?.scrollLeft ?? 0;
+    const track     = (e.currentTarget as HTMLElement).parentElement!;
+    const overflow  = (scrollRef.current?.scrollWidth ?? 0) - (scrollRef.current?.clientWidth ?? 0);
+    const scale     = overflow / (track.clientWidth * (1 - thumbW));
+
+    function onMove(ev: PointerEvent) {
+      if (!scrollRef.current) return;
+      scrollRef.current.scrollLeft = startLeft + (ev.clientX - startX) * scale;
+    }
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup",   onUp);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup",   onUp);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,7 +146,6 @@ export default function AdminPanel() {
     const saveKey = `${userId}:${key}`;
     setSaving((s) => new Set(s).add(saveKey));
 
-    // Optimistic update
     setUsers((prev) =>
       prev.map((u) =>
         u.id === userId
@@ -115,7 +162,6 @@ export default function AdminPanel() {
       });
       if (!res.ok) throw new Error("failed");
     } catch {
-      // Revert on failure
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId
@@ -197,78 +243,99 @@ export default function AdminPanel() {
 
         {/* Scrollable table: headers + rows */}
         {!loading && !error && (
-          <div className="overflow-x-auto -mx-4 px-4">
-            <div className="min-w-[520px]">
+          <>
+            <div
+              ref={scrollRef}
+              onScroll={updateThumb}
+              className="overflow-x-auto -mx-4 px-4"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <div className="min-w-[520px] pb-3">
 
-              {/* Column headers */}
-              {users.length > 0 && (
-                <div className="flex items-center mb-2 pr-1">
-                  <div className="flex-1" />
-                  <div className="flex items-center gap-6">
-                    {PERM_COLS.map(({ key, label, color }) => (
-                      <span
-                        key={key}
-                        className="text-[10px] font-semibold uppercase tracking-wider w-10 text-center"
-                        style={{ color }}
-                      >
-                        {label}
-                      </span>
-                    ))}
+                {/* Column headers */}
+                {users.length > 0 && (
+                  <div className="flex items-center mb-2 pr-1">
+                    <div className="flex-1" />
+                    <div className="flex items-center gap-6">
+                      {PERM_COLS.map(({ key, label, color }) => (
+                        <span
+                          key={key}
+                          className="text-[10px] font-semibold uppercase tracking-wider w-10 text-center"
+                          style={{ color }}
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
+                )}
+
+                {/* User rows */}
+                <div className="space-y-2">
+                  {users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
+                    >
+                      {/* Avatar */}
+                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
+                        {(u.email?.[0] ?? "?").toUpperCase()}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-medium truncate">
+                          {u.email ?? "(no email)"}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Joined {fmt(u.created_at)}
+                          {u.last_sign_in_at && (
+                            <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Permission toggles */}
+                      <div className="flex items-center gap-6 flex-shrink-0">
+                        {PERM_COLS.map(({ key, color }) => {
+                          const saveKey = `${u.id}:${key}`;
+                          return (
+                            <div key={key} className="w-10 flex justify-center">
+                              {saving.has(saveKey) ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                              ) : (
+                                <Toggle
+                                  checked={u.permissions[key]}
+                                  color={color}
+                                  disabled={false}
+                                  onChange={() => toggle(u.id, key, u.permissions[key])}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
 
-              {/* User rows */}
-              <div className="space-y-2">
-                {users.map((u) => (
-                  <div
-                    key={u.id}
-                    className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
-                  >
-                    {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
-                      {(u.email?.[0] ?? "?").toUpperCase()}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium truncate">
-                        {u.email ?? "(no email)"}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Joined {fmt(u.created_at)}
-                        {u.last_sign_in_at && (
-                          <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Permission toggles */}
-                    <div className="flex items-center gap-6 flex-shrink-0">
-                      {PERM_COLS.map(({ key, color }) => {
-                        const saveKey = `${u.id}:${key}`;
-                        return (
-                          <div key={key} className="w-10 flex justify-center">
-                            {saving.has(saveKey) ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                            ) : (
-                              <Toggle
-                                checked={u.permissions[key]}
-                                color={color}
-                                disabled={false}
-                                onChange={() => toggle(u.id, key, u.permissions[key])}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
               </div>
-
             </div>
-          </div>
+
+            {/* Custom scrollbar — solo visible cuando hay overflow */}
+            {canScroll && (
+              <div className="mt-2 mx-1 h-1 bg-slate-700/40 rounded-full relative select-none">
+                <div
+                  onPointerDown={onThumbPointerDown}
+                  className="absolute top-0 h-full bg-slate-500 hover:bg-slate-400 active:bg-slate-300 rounded-full cursor-grab active:cursor-grabbing transition-colors"
+                  style={{
+                    width: `${thumbW * 100}%`,
+                    left:  `${scrollPct * (1 - thumbW) * 100}%`,
+                  }}
+                />
+              </div>
+            )}
+          </>
         )}
 
       </div>
