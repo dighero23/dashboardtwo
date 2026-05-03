@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Shield, RefreshCw, Loader2, Megaphone, X } from "lucide-react";
+import { Shield, RefreshCw, Loader2, Megaphone, X, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health";
@@ -31,14 +31,19 @@ const PERM_COLS: { key: PermKey; label: string; color: string }[] = [
 ];
 
 const MODULES = ["all", "f1", "stocks", "macro", "health"] as const;
-type BroadcastMod = typeof MODULES[number];
+type Mod = typeof MODULES[number];
 
-const MOD_LABELS: Record<BroadcastMod, string> = {
+const MOD_LABELS: Record<Mod, string> = {
   all: "Everyone", f1: "F1", stocks: "Stocks", macro: "Macro", health: "Health",
 };
-
-const MOD_COLORS: Record<BroadcastMod, string> = {
+const MOD_COLORS: Record<Mod, string> = {
   all: "#a78bfa", f1: "#fbbf24", stocks: "#34d399", macro: "#60a5fa", health: "#f87171",
+};
+
+const SYNC_MODULES = ["all", "f1", "stocks", "macro"] as const;
+type SyncMod = typeof SYNC_MODULES[number];
+const SYNC_LABELS: Record<SyncMod, string> = {
+  all: "All", f1: "F1", stocks: "Stocks", macro: "Macro",
 };
 
 function Toggle({
@@ -87,11 +92,17 @@ export default function AdminPanel() {
 
   // Broadcast state
   const [showBroadcast, setShowBroadcast] = useState(false);
-  const [bMod,     setBMod]     = useState<BroadcastMod>("all");
+  const [bMod,     setBMod]     = useState<Mod>("all");
   const [bTitle,   setBTitle]   = useState("");
   const [bMessage, setBMessage] = useState("");
   const [bSending, setBSending] = useState(false);
   const [bResult,  setBResult]  = useState<string | null>(null);
+
+  // Sync state
+  const [showSync, setShowSync]   = useState(false);
+  const [sMod,     setSMod]       = useState<SyncMod>("all");
+  const [sSyncing, setSSyncing]   = useState(false);
+  const [sResult,  setSResult]    = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,7 +127,6 @@ export default function AdminPanel() {
   async function toggle(userId: string, key: PermKey, current: boolean) {
     const saveKey = `${userId}:${key}`;
     setSaving((s) => new Set(s).add(saveKey));
-
     setUsers((prev) =>
       prev.map((u) =>
         u.id === userId
@@ -124,7 +134,6 @@ export default function AdminPanel() {
           : u
       )
     );
-
     try {
       const res = await fetch(`/api/admin/users/${userId}/permissions`, {
         method: "PATCH",
@@ -174,36 +183,73 @@ export default function AdminPanel() {
     }
   }
 
+  async function runSync() {
+    setSSyncing(true);
+    setSResult(null);
+    try {
+      const res = await fetch("/api/admin/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ module: sMod }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setSResult(`Error: ${json.error ?? "Unknown error"}`);
+      } else {
+        const r = json.result as Record<string, number | string>;
+        const parts = Object.entries(r)
+          .filter(([, v]) => v !== 0 && v !== "error")
+          .map(([k, v]) => `${k.toUpperCase()}: ${v === "refreshed" ? "refreshed" : `${v} expired`}`);
+        setSResult(parts.length > 0 ? parts.join(" · ") : "Nothing to clear.");
+      }
+    } catch {
+      setSResult("Network error.");
+    } finally {
+      setSSyncing(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-900 px-4 pt-10 pb-16 sm:pt-14">
       <div className="max-w-3xl mx-auto">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "#a78bfa1a", border: "1px solid #a78bfa44" }}
-            >
-              <Shield className="w-5 h-5" style={{ color: "#a78bfa" }} />
+        {/* Header — two rows */}
+        <div className="mb-6">
+          {/* Row 1: Title + Home */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "#a78bfa1a", border: "1px solid #a78bfa44" }}
+              >
+                <Shield className="w-5 h-5" style={{ color: "#a78bfa" }} />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-white">Admin Panel</h1>
+                {!loading && !error && (
+                  <p className="text-xs text-slate-500">
+                    {users.length} {users.length === 1 ? "user" : "users"}
+                  </p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-              {!loading && !error && (
-                <p className="text-xs text-slate-500">
-                  {users.length} {users.length === 1 ? "user" : "users"}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
             <Link
               href="/"
               className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
             >
               ← Home
             </Link>
+          </div>
+
+          {/* Row 2: Action buttons */}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => { setShowSync(true); setSResult(null); }}
+              className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 transition-colors px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Sync
+            </button>
             <button
               onClick={() => { setShowBroadcast(true); setBResult(null); }}
               className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20"
@@ -274,12 +320,9 @@ export default function AdminPanel() {
                     key={u.id}
                     className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
                   >
-                    {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
                       {(u.email?.[0] ?? "?").toUpperCase()}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white font-medium truncate">
                         {u.email ?? "(no email)"}
@@ -291,8 +334,6 @@ export default function AdminPanel() {
                         )}
                       </p>
                     </div>
-
-                    {/* Permission toggles */}
                     <div className="flex items-center gap-6 flex-shrink-0">
                       {PERM_COLS.map(({ key, color }) => {
                         const saveKey = `${u.id}:${key}`;
@@ -322,6 +363,67 @@ export default function AdminPanel() {
 
       </div>
 
+      {/* Sync modal */}
+      {showSync && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowSync(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl bg-slate-800 border border-slate-700 p-5 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-sky-400" />
+                <span className="text-sm font-semibold text-white">Force Sync</span>
+              </div>
+              <button
+                onClick={() => setShowSync(false)}
+                className="text-slate-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4">
+              Expires cached data so the next load fetches fresh from the source. Stocks data is refreshed immediately.
+            </p>
+
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {SYNC_MODULES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setSMod(m)}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                  style={
+                    sMod === m
+                      ? { background: MOD_COLORS[m] + "33", color: MOD_COLORS[m], border: `1px solid ${MOD_COLORS[m]}66` }
+                      : { background: "transparent", color: "#94a3b8", border: "1px solid #334155" }
+                  }
+                >
+                  {SYNC_LABELS[m]}
+                </button>
+              ))}
+            </div>
+
+            {sResult && (
+              <p className="text-xs text-slate-400 mb-3">{sResult}</p>
+            )}
+
+            <button
+              onClick={runSync}
+              disabled={sSyncing}
+              className="w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-sky-500/20 border border-sky-500/40 text-sky-300 hover:bg-sky-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sSyncing
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <RotateCcw className="w-4 h-4" />
+              }
+              {sSyncing ? "Syncing…" : "Sync Now"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Broadcast modal */}
       {showBroadcast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -330,7 +432,6 @@ export default function AdminPanel() {
             onClick={() => setShowBroadcast(false)}
           />
           <div className="relative w-full max-w-sm rounded-2xl bg-slate-800 border border-slate-700 p-5 shadow-xl">
-            {/* Modal header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-amber-400" />
@@ -344,7 +445,6 @@ export default function AdminPanel() {
               </button>
             </div>
 
-            {/* Module selector pills */}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {MODULES.map((m) => (
                 <button
@@ -362,7 +462,6 @@ export default function AdminPanel() {
               ))}
             </div>
 
-            {/* Title */}
             <input
               type="text"
               placeholder="Title"
@@ -370,8 +469,6 @@ export default function AdminPanel() {
               onChange={(e) => setBTitle(e.target.value)}
               className="w-full mb-2 px-3 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
             />
-
-            {/* Message */}
             <textarea
               placeholder="Message"
               value={bMessage}
@@ -380,12 +477,10 @@ export default function AdminPanel() {
               className="w-full mb-3 px-3 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 resize-none"
             />
 
-            {/* Result */}
             {bResult && (
               <p className="text-xs text-slate-400 mb-3">{bResult}</p>
             )}
 
-            {/* Send button */}
             <button
               onClick={sendBroadcast}
               disabled={bSending || !bTitle.trim() || !bMessage.trim()}
