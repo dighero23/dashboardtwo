@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Shield, RefreshCw, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Shield, RefreshCw, Loader2, Megaphone, X } from "lucide-react";
 import Link from "next/link";
 
 type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health";
@@ -29,6 +29,17 @@ const PERM_COLS: { key: PermKey; label: string; color: string }[] = [
   { key: "can_edit_macro",  label: "Macro",  color: "#60a5fa" },
   { key: "can_edit_health", label: "Health", color: "#f87171" },
 ];
+
+const MODULES = ["all", "f1", "stocks", "macro", "health"] as const;
+type BroadcastMod = typeof MODULES[number];
+
+const MOD_LABELS: Record<BroadcastMod, string> = {
+  all: "Everyone", f1: "F1", stocks: "Stocks", macro: "Macro", health: "Health",
+};
+
+const MOD_COLORS: Record<BroadcastMod, string> = {
+  all: "#a78bfa", f1: "#fbbf24", stocks: "#34d399", macro: "#60a5fa", health: "#f87171",
+};
 
 function Toggle({
   checked,
@@ -74,53 +85,13 @@ export default function AdminPanel() {
   const [error,   setError]   = useState<string | null>(null);
   const [saving,  setSaving]  = useState<Set<string>>(new Set());
 
-  // Scrollbar state
-  const scrollRef               = useRef<HTMLDivElement>(null);
-  const [scrollPct, setScrollPct] = useState(0);
-  const [thumbW,    setThumbW]    = useState(1);
-  const [canScroll, setCanScroll] = useState(false);
-
-  function updateThumb() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const overflow = el.scrollWidth - el.clientWidth;
-    const hasOverflow = overflow > 1;
-    setCanScroll(hasOverflow);
-    setThumbW(el.clientWidth / el.scrollWidth);
-    setScrollPct(hasOverflow ? el.scrollLeft / overflow : 0);
-  }
-
-  useEffect(() => {
-    updateThumb();
-    window.addEventListener("resize", updateThumb);
-    return () => window.removeEventListener("resize", updateThumb);
-  }, []);
-
-  // Recalculate when users load
-  useEffect(() => {
-    // Defer to next frame so the DOM has rendered the rows
-    requestAnimationFrame(updateThumb);
-  }, [users]);
-
-  function onThumbPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const startX    = e.clientX;
-    const startLeft = scrollRef.current?.scrollLeft ?? 0;
-    const track     = (e.currentTarget as HTMLElement).parentElement!;
-    const overflow  = (scrollRef.current?.scrollWidth ?? 0) - (scrollRef.current?.clientWidth ?? 0);
-    const scale     = overflow / (track.clientWidth * (1 - thumbW));
-
-    function onMove(ev: PointerEvent) {
-      if (!scrollRef.current) return;
-      scrollRef.current.scrollLeft = startLeft + (ev.clientX - startX) * scale;
-    }
-    function onUp() {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup",   onUp);
-    }
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup",   onUp);
-  }
+  // Broadcast state
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [bMod,     setBMod]     = useState<BroadcastMod>("all");
+  const [bTitle,   setBTitle]   = useState("");
+  const [bMessage, setBMessage] = useState("");
+  const [bSending, setBSending] = useState(false);
+  const [bResult,  setBResult]  = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -178,6 +149,31 @@ export default function AdminPanel() {
     }
   }
 
+  async function sendBroadcast() {
+    if (!bTitle.trim() || !bMessage.trim()) return;
+    setBSending(true);
+    setBResult(null);
+    try {
+      const res = await fetch("/api/admin/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: bTitle, message: bMessage, module: bMod }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setBResult(`Error: ${json.error ?? "Unknown error"}`);
+      } else {
+        setBResult(`Sent to ${json.sent} device(s).${json.failed > 0 ? ` ${json.failed} failed/removed.` : ""}`);
+        setBTitle("");
+        setBMessage("");
+      }
+    } catch {
+      setBResult("Network error.");
+    } finally {
+      setBSending(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-900 px-4 pt-10 pb-16 sm:pt-14">
       <div className="max-w-3xl mx-auto">
@@ -208,6 +204,13 @@ export default function AdminPanel() {
             >
               ← Home
             </Link>
+            <button
+              onClick={() => { setShowBroadcast(true); setBResult(null); }}
+              className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20"
+            >
+              <Megaphone className="w-3 h-3" />
+              Broadcast
+            </button>
             <button
               onClick={load}
               disabled={loading}
@@ -243,102 +246,160 @@ export default function AdminPanel() {
 
         {/* Scrollable table: headers + rows */}
         {!loading && !error && (
-          <>
-            <div
-              ref={scrollRef}
-              onScroll={updateThumb}
-              className="overflow-x-auto -mx-4 px-4"
-              style={{ scrollbarWidth: "none" }}
-            >
-              <div className="min-w-[520px] pb-3">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="min-w-[520px] pb-3">
 
-                {/* Column headers */}
-                {users.length > 0 && (
-                  <div className="flex items-center mb-2 pr-1">
-                    <div className="flex-1" />
-                    <div className="flex items-center gap-6">
-                      {PERM_COLS.map(({ key, label, color }) => (
-                        <span
-                          key={key}
-                          className="text-[10px] font-semibold uppercase tracking-wider w-10 text-center"
-                          style={{ color }}
-                        >
-                          {label}
-                        </span>
-                      ))}
+              {/* Column headers */}
+              {users.length > 0 && (
+                <div className="flex items-center mb-2 pr-1">
+                  <div className="flex-1" />
+                  <div className="flex items-center gap-6">
+                    {PERM_COLS.map(({ key, label, color }) => (
+                      <span
+                        key={key}
+                        className="text-[10px] font-semibold uppercase tracking-wider w-10 text-center"
+                        style={{ color }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* User rows */}
+              <div className="space-y-2">
+                {users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
+                  >
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
+                      {(u.email?.[0] ?? "?").toUpperCase()}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate">
+                        {u.email ?? "(no email)"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Joined {fmt(u.created_at)}
+                        {u.last_sign_in_at && (
+                          <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Permission toggles */}
+                    <div className="flex items-center gap-6 flex-shrink-0">
+                      {PERM_COLS.map(({ key, color }) => {
+                        const saveKey = `${u.id}:${key}`;
+                        return (
+                          <div key={key} className="w-10 flex justify-center">
+                            {saving.has(saveKey) ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                            ) : (
+                              <Toggle
+                                checked={u.permissions[key]}
+                                color={color}
+                                disabled={false}
+                                onChange={() => toggle(u.id, key, u.permissions[key])}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                )}
-
-                {/* User rows */}
-                <div className="space-y-2">
-                  {users.map((u) => (
-                    <div
-                      key={u.id}
-                      className="rounded-xl bg-slate-800/40 border border-slate-700/50 px-4 py-3 flex items-center gap-4"
-                    >
-                      {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-300">
-                        {(u.email?.[0] ?? "?").toUpperCase()}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium truncate">
-                          {u.email ?? "(no email)"}
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Joined {fmt(u.created_at)}
-                          {u.last_sign_in_at && (
-                            <span className="hidden sm:inline"> · Last login {fmt(u.last_sign_in_at)}</span>
-                          )}
-                        </p>
-                      </div>
-
-                      {/* Permission toggles */}
-                      <div className="flex items-center gap-6 flex-shrink-0">
-                        {PERM_COLS.map(({ key, color }) => {
-                          const saveKey = `${u.id}:${key}`;
-                          return (
-                            <div key={key} className="w-10 flex justify-center">
-                              {saving.has(saveKey) ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                              ) : (
-                                <Toggle
-                                  checked={u.permissions[key]}
-                                  color={color}
-                                  disabled={false}
-                                  onChange={() => toggle(u.id, key, u.permissions[key])}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
+                ))}
               </div>
+
             </div>
-
-            {/* Custom scrollbar — solo visible cuando hay overflow */}
-            {canScroll && (
-              <div className="mt-2 mx-1 h-1 bg-slate-700/40 rounded-full relative select-none">
-                <div
-                  onPointerDown={onThumbPointerDown}
-                  className="absolute top-0 h-full bg-slate-500 hover:bg-slate-400 active:bg-slate-300 rounded-full cursor-grab active:cursor-grabbing transition-colors"
-                  style={{
-                    width: `${thumbW * 100}%`,
-                    left:  `${scrollPct * (1 - thumbW) * 100}%`,
-                  }}
-                />
-              </div>
-            )}
-          </>
+          </div>
         )}
 
       </div>
+
+      {/* Broadcast modal */}
+      {showBroadcast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowBroadcast(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl bg-slate-800 border border-slate-700 p-5 shadow-xl">
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-semibold text-white">Broadcast Notification</span>
+              </div>
+              <button
+                onClick={() => setShowBroadcast(false)}
+                className="text-slate-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Module selector pills */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {MODULES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setBMod(m)}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                  style={
+                    bMod === m
+                      ? { background: MOD_COLORS[m] + "33", color: MOD_COLORS[m], border: `1px solid ${MOD_COLORS[m]}66` }
+                      : { background: "transparent", color: "#94a3b8", border: "1px solid #334155" }
+                  }
+                >
+                  {MOD_LABELS[m]}
+                </button>
+              ))}
+            </div>
+
+            {/* Title */}
+            <input
+              type="text"
+              placeholder="Title"
+              value={bTitle}
+              onChange={(e) => setBTitle(e.target.value)}
+              className="w-full mb-2 px-3 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
+            />
+
+            {/* Message */}
+            <textarea
+              placeholder="Message"
+              value={bMessage}
+              onChange={(e) => setBMessage(e.target.value)}
+              rows={3}
+              className="w-full mb-3 px-3 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 resize-none"
+            />
+
+            {/* Result */}
+            {bResult && (
+              <p className="text-xs text-slate-400 mb-3">{bResult}</p>
+            )}
+
+            {/* Send button */}
+            <button
+              onClick={sendBroadcast}
+              disabled={bSending || !bTitle.trim() || !bMessage.trim()}
+              className="w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bSending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Megaphone className="w-4 h-4" />
+              }
+              {bSending ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
