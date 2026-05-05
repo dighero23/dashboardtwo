@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  Heart, Plus, Check, Trash2, Users, Calendar, ClipboardList, LogIn, AlertCircle,
+  Heart, Plus, Check, Trash2, Pencil, Users, Calendar, ClipboardList, LogIn, AlertCircle,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import LoginModal from "@/app/stocks/components/LoginModal";
@@ -12,6 +12,7 @@ import type { HealthEvent, Dependent, EventType } from "@/lib/health/types";
 import AddEventModal from "./components/AddEventModal";
 import AddDependentModal from "./components/AddDependentModal";
 import CompleteEventModal from "./components/CompleteEventModal";
+import EditEventModal from "./components/EditEventModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export default function HealthModule() {
   const [showAddEvent,      setShowAddEvent]      = useState(false);
   const [showAddDependent,  setShowAddDependent]  = useState(false);
   const [completingEvent,   setCompletingEvent]   = useState<HealthEvent | null>(null);
+  const [editingEvent,      setEditingEvent]      = useState<HealthEvent | null>(null);
   const [confirmDeleteId,   setConfirmDeleteId]   = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
@@ -248,6 +250,13 @@ export default function HealthModule() {
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
                         </button>
                         <button
+                          onClick={() => { setEditingEvent(e); setConfirmDeleteId(null); }}
+                          title="Edit"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-slate-700/50 hover:bg-sky-500/20 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-slate-500 hover:text-sky-400" />
+                        </button>
+                        <button
                           onClick={() => setConfirmDeleteId(isDeleting ? null : e.id)}
                           title="Delete"
                           className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
@@ -422,6 +431,17 @@ export default function HealthModule() {
           onClose={() => setCompletingEvent(null)}
           onSuccess={() => {
             setCompletingEvent(null);
+            loadEvents();
+          }}
+        />
+      )}
+      {editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          dependents={dependents}
+          onClose={() => setEditingEvent(null)}
+          onSuccess={() => {
+            setEditingEvent(null);
             loadEvents();
           }}
         />

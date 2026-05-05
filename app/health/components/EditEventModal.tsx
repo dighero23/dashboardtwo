@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import type { Dependent, EventType } from "@/lib/health/types";
+import type { HealthEvent, Dependent, EventType } from "@/lib/health/types";
 
 const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
   { value: "vaccine",     label: "Vaccine",     color: "text-blue-400 bg-blue-500/15 border-blue-500/30"   },
@@ -12,21 +12,22 @@ const EVENT_TYPES: { value: EventType; label: string; color: string }[] = [
 ];
 
 interface Props {
+  event:      HealthEvent;
   dependents: Dependent[];
-  onClose: () => void;
-  onSuccess: () => void;
+  onClose:    () => void;
+  onSuccess:  () => void;
 }
 
-export default function AddEventModal({ dependents, onClose, onSuccess }: Props) {
-  const [title,       setTitle]       = useState("");
-  const [eventType,   setEventType]   = useState<EventType>("appointment");
-  const [eventDate,   setEventDate]   = useState("");
-  const [forType,     setForType]     = useState<"self" | "dependent">("self");
-  const [dependentId, setDependentId] = useState("");
-  const [eventTime,   setEventTime]   = useState("");
-  const [notes,       setNotes]       = useState("");
-  const [alert1Week,  setAlert1Week]  = useState(true);
-  const [alert1Day,   setAlert1Day]   = useState(true);
+export default function EditEventModal({ event, dependents, onClose, onSuccess }: Props) {
+  const [title,       setTitle]       = useState(event.title);
+  const [eventType,   setEventType]   = useState<EventType>(event.eventType);
+  const [eventDate,   setEventDate]   = useState(event.eventDate);
+  const [eventTime,   setEventTime]   = useState(event.eventTime?.slice(0, 5) ?? "");
+  const [forType,     setForType]     = useState<"self" | "dependent">(event.forType);
+  const [dependentId, setDependentId] = useState(event.dependentId ?? "");
+  const [notes,       setNotes]       = useState(event.notes ?? "");
+  const [alert1Week,  setAlert1Week]  = useState(event.alert1Week);
+  const [alert1Day,   setAlert1Day]   = useState(event.alert1Day);
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState("");
 
@@ -46,8 +47,8 @@ export default function AddEventModal({ dependents, onClose, onSuccess }: Props)
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/health/events", {
-        method: "POST",
+      const res = await fetch(`/api/health/events/${event.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title:       title.trim(),
@@ -78,7 +79,7 @@ export default function AddEventModal({ dependents, onClose, onSuccess }: Props)
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-700/60">
-          <h2 className="text-base font-semibold text-white">Add Event</h2>
+          <h2 className="text-base font-semibold text-white">Edit Event</h2>
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-700 transition-colors"
@@ -105,7 +106,7 @@ export default function AddEventModal({ dependents, onClose, onSuccess }: Props)
             />
           </div>
 
-          {/* Type selector — icon pills */}
+          {/* Type selector */}
           <div>
             <label className="text-xs text-slate-400 block mb-1.5">Type</label>
             <div className="grid grid-cols-4 gap-1.5">
@@ -144,7 +145,7 @@ export default function AddEventModal({ dependents, onClose, onSuccess }: Props)
           {/* Date + Time */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Scheduled date</label>
+              <label className="text-xs text-slate-400 block mb-1">Date</label>
               <input
                 type="date"
                 value={eventDate}
@@ -215,7 +216,7 @@ export default function AddEventModal({ dependents, onClose, onSuccess }: Props)
             className="w-full py-2.5 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-300 text-sm font-medium hover:bg-teal-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Save Event
+            Save Changes
           </button>
         </form>
       </div>
