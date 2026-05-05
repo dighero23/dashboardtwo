@@ -215,30 +215,30 @@ export default function AdminPanel() {
 
         {/* Header — two rows */}
         <div className="mb-6">
-          {/* Row 1: Title + Home */}
+          {/* Row 1: Home (left) + Title + icon (right) */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "#a78bfa1a", border: "1px solid #a78bfa44" }}
-              >
-                <Shield className="w-5 h-5" style={{ color: "#a78bfa" }} />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-                {!loading && !error && (
-                  <p className="text-xs text-slate-500">
-                    {users.length} {users.length === 1 ? "user" : "users"}
-                  </p>
-                )}
-              </div>
-            </div>
             <Link
               href="/"
               className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
             >
               ← Home
             </Link>
+            <div className="flex items-center gap-2">
+              <div>
+                <h1 className="text-lg font-bold text-white text-right">Admin Panel</h1>
+                {!loading && !error && (
+                  <p className="text-xs text-slate-500 text-right">
+                    {users.length} {users.length === 1 ? "user" : "users"}
+                  </p>
+                )}
+              </div>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "#a78bfa1a", border: "1px solid #a78bfa44" }}
+              >
+                <Shield className="w-5 h-5" style={{ color: "#a78bfa" }} />
+              </div>
+            </div>
           </div>
 
           {/* Row 2: Action buttons */}

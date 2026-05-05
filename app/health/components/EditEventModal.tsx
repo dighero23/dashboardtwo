@@ -143,8 +143,8 @@ export default function EditEventModal({ event, dependents, onClose, onSuccess }
           </div>
 
           {/* Date + Time */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="flex gap-3 items-start">
+            <div className="flex-1 min-w-0">
               <label className="text-xs text-slate-400 block mb-1">Date</label>
               <input
                 type="date"
@@ -154,9 +154,9 @@ export default function EditEventModal({ event, dependents, onClose, onSuccess }
                 required
               />
             </div>
-            <div>
+            <div className="w-32 flex-shrink-0">
               <label className="text-xs text-slate-400 block mb-1">
-                Time <span className="text-slate-600">(optional)</span>
+                Time <span className="text-slate-600">(opt.)</span>
               </label>
               <input
                 type="time"

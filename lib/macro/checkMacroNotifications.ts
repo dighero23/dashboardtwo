@@ -14,7 +14,7 @@ interface NotifEntry {
 
 const NOTIF_MAP: Record<string, NotifEntry> = {
   cpiRelease:  { prefCol: "cpi_release",  dbType: "cpi_release",  keywords: ["cpi", "consumer price index"] },
-  fedDecision: { prefCol: "fed_decision", dbType: "fed_decision", keywords: ["fomc", "federal funds rate", "fed interest rate"] },
+  fedDecision: { prefCol: "fed_decision", dbType: "fed_decision", keywords: ["fomc", "federal funds rate", "fed interest rate", "interest rate decision", "fed rate decision", "monetary policy statement", "federal reserve"] },
   gdpRelease:  { prefCol: "gdp_release",  dbType: "gdp_release",  keywords: ["gdp", "gross domestic product"] },
   jobsReport:  { prefCol: "jobs_report",  dbType: "jobs_report",  keywords: ["nonfarm payroll", "nfp", "employment situation", "employment change"] },
   pceRelease:  { prefCol: "pce_release",  dbType: "pce_release",  keywords: ["pce", "personal consumption expenditures", "personal spending"] },
