@@ -114,6 +114,26 @@ function Sparkline({ values, color, targetLine }: {
   );
 }
 
+// ─── Key release classifier (mirrors checkMacroNotifications keywords) ────────
+
+const KEY_RELEASES: Array<{ id: string; label: string; keywords: string[]; color: string }> = [
+  { id: "cpi",  label: "CPI",  color: "#60a5fa", keywords: ["cpi", "consumer price index"] },
+  { id: "fomc", label: "FOMC", color: "#a78bfa", keywords: ["fomc", "federal funds rate", "interest rate decision", "monetary policy", "federal reserve"] },
+  { id: "gdp",  label: "GDP",  color: "#34d399", keywords: ["gdp", "gross domestic product"] },
+  { id: "nfp",  label: "NFP",  color: "#fbbf24", keywords: ["nonfarm payroll", "nfp", "employment situation", "employment change"] },
+  { id: "pce",  label: "PCE",  color: "#fb923c", keywords: ["pce", "personal consumption", "personal spending"] },
+];
+
+function findNextRelease(events: MacroEvent[], keywords: string[]): MacroEvent | null {
+  const now = Date.now();
+  return events
+    .filter((e) => {
+      const lower = e.event.toLowerCase();
+      return keywords.some((kw) => lower.includes(kw)) && new Date(e.time).getTime() > now - 3_600_000;
+    })
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())[0] ?? null;
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -471,6 +491,55 @@ export default function MacroPulse() {
               </>
             )}
           </div>
+        </section>
+
+        {/* ── Key Releases ────────────────────────────────────────────────── */}
+        <section>
+          <SectionLabel>Key Releases</SectionLabel>
+          {loading ? (
+            <div className="flex gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-[72px] h-[68px] rounded-xl bg-slate-800/40 border border-slate-700/40 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {KEY_RELEASES.map(({ id, label, color, keywords }) => {
+                const evt = findNextRelease(events, keywords);
+                if (!evt) return (
+                  <div key={id} className="flex-shrink-0 min-w-[72px] rounded-xl bg-slate-800/40 border border-slate-700/40 px-3 py-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color }}>{label}</p>
+                    <p className="text-[11px] text-slate-600">TBD</p>
+                  </div>
+                );
+
+                const evtMs   = new Date(evt.time).getTime();
+                const daysOut = Math.ceil((evtMs - Date.now()) / 86_400_000);
+                const dateStr = new Date(evt.time).toLocaleDateString("en-US", {
+                  timeZone: "America/New_York", month: "short", day: "numeric",
+                });
+
+                const chipCls =
+                  daysOut <= 0 ? "text-red-400 bg-red-500/15" :
+                  daysOut <= 3 ? "text-amber-400 bg-amber-500/15" :
+                  daysOut <= 7 ? "text-amber-400/70 bg-amber-500/10" :
+                                 "text-slate-400 bg-slate-700/50";
+                const chipTxt =
+                  daysOut <= 0 ? "Today" :
+                  daysOut === 1 ? "Tmrw" : `${daysOut}d`;
+
+                return (
+                  <div key={id} className="flex-shrink-0 min-w-[72px] rounded-xl bg-slate-800/50 border border-slate-700/50 px-3 py-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color }}>{label}</p>
+                    <p className="text-xs text-white font-medium leading-tight">{dateStr}</p>
+                    <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full mt-1 ${chipCls}`}>
+                      {chipTxt}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* ── Economic Calendar ────────────────────────────────────────────── */}
