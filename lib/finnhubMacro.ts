@@ -14,7 +14,7 @@ async function fetchEconomicCalendar(): Promise<MacroEvent[] | null> {
 
   const from = new Date().toISOString().split("T")[0];
   const toDate = new Date();
-  toDate.setDate(toDate.getDate() + 28);
+  toDate.setDate(toDate.getDate() + 60);
   const to = toDate.toISOString().split("T")[0];
 
   try {
@@ -91,7 +91,9 @@ const HIGH_IMPACT_KEYWORDS = [
   "consumer price",
   "pce",
   "personal consumption",
+  "personal spending",
   "gdp",
+  "gross domestic product",
   "fomc",
   "federal funds",
   "interest rate decision",
