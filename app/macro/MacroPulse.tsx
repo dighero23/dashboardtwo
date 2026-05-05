@@ -165,6 +165,7 @@ export default function MacroPulse() {
   // Data
   const [indicators, setIndicators] = useState<IndicatorsResponse | null>(null);
   const [events,     setEvents]     = useState<MacroEvent[]>([]);
+  const [allEvents,  setAllEvents]  = useState<MacroEvent[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -200,12 +201,14 @@ export default function MacroPulse() {
   );
 
   const load = useCallback(async () => {
-    const [indRes, evtRes] = await Promise.allSettled([
+    const [indRes, evtHighRes, evtAllRes] = await Promise.allSettled([
       fetch("/api/macro/indicators").then((r) => r.json()),
       fetch("/api/macro/events?filter=high").then((r) => r.json()),
+      fetch("/api/macro/events").then((r) => r.json()),
     ]);
     if (indRes.status === "fulfilled") setIndicators(indRes.value as IndicatorsResponse);
-    if (evtRes.status === "fulfilled") setEvents((evtRes.value as { events: MacroEvent[] }).events ?? []);
+    if (evtHighRes.status === "fulfilled") setEvents((evtHighRes.value as { events: MacroEvent[] }).events ?? []);
+    if (evtAllRes.status === "fulfilled") setAllEvents((evtAllRes.value as { events: MacroEvent[] }).events ?? []);
   }, []);
 
   useEffect(() => {
@@ -243,7 +246,7 @@ export default function MacroPulse() {
   const sortedKeyReleases = KEY_RELEASES
     .map(({ id, label, color, keywords }) => ({
       id, label, color,
-      evt: findNextRelease(events, keywords),
+      evt: findNextRelease(allEvents, keywords),
     }))
     .sort((a, b) => {
       const aMs = a.evt ? new Date(a.evt.time).getTime() : Infinity;

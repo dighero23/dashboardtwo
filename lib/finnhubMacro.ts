@@ -6,7 +6,7 @@ const CALENDAR_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 /**
  * Fetch upcoming economic calendar events from Finnhub.
- * Filters for US events only; looks 4 weeks ahead.
+ * Filters for US events only; looks 60 days ahead.
  */
 async function fetchEconomicCalendar(): Promise<MacroEvent[] | null> {
   const key = process.env.FINNHUB_API_KEY;
@@ -58,7 +58,7 @@ async function fetchEconomicCalendar(): Promise<MacroEvent[] | null> {
  */
 export async function getEconomicCalendar(): Promise<MacroEvent[]> {
   const db = createAdminClient();
-  const cacheKey = "finnhub:economic-calendar";
+  const cacheKey = "finnhub:economic-calendar:60d";
   const now = new Date();
 
   const { data: cached } = await db
