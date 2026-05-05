@@ -58,12 +58,13 @@ export async function checkMacroNotifications(): Promise<void> {
   const nowMs = now.getTime();
   const MIN = 60_000;
 
-  // Events firing in the 59–61-minute pre-event window
+  // Events firing in the 54–66-minute pre-event window.
+  // Wide enough for a 5-minute cron (guarantees at least one hit); dedup prevents double-send.
   const toNotify = events.filter((e) => {
     if (!e.time) return false;
     const eventMs = new Date(e.time).getTime();
     const minsUntil = (eventMs - nowMs) / MIN;
-    return minsUntil >= 59 && minsUntil <= 61;
+    return minsUntil >= 54 && minsUntil <= 66;
   });
 
   if (toNotify.length === 0) return;

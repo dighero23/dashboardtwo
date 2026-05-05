@@ -97,13 +97,15 @@ export async function checkF1Notifications(): Promise<void> {
   // Determine which notification types fire right now
   const toFire: string[] = [];
 
+  // All ±-minute windows are 12 min wide (54–66 or equivalent) so a 5-minute cron
+  // always gets at least one hit. Dedup in f1_sent_notifications prevents double-send.
   if (raceUtc) {
     // 1 hour before race
-    if (inRange(nowMs, raceUtc.getTime() - 61 * MIN, raceUtc.getTime() - 59 * MIN)) {
+    if (inRange(nowMs, raceUtc.getTime() - 66 * MIN, raceUtc.getTime() - 54 * MIN)) {
       toFire.push("preRace");
     }
     // ~100 min after race start (approx race duration)
-    if (inRange(nowMs, raceUtc.getTime() + 100 * MIN, raceUtc.getTime() + 102 * MIN)) {
+    if (inRange(nowMs, raceUtc.getTime() + 94 * MIN, raceUtc.getTime() + 106 * MIN)) {
       toFire.push("raceResult");
     }
     // Monday noon CST, race 6–8 days away
@@ -114,11 +116,11 @@ export async function checkF1Notifications(): Promise<void> {
 
   if (qualiUtc) {
     // 1 hour before qualifying
-    if (inRange(nowMs, qualiUtc.getTime() - 61 * MIN, qualiUtc.getTime() - 59 * MIN)) {
+    if (inRange(nowMs, qualiUtc.getTime() - 66 * MIN, qualiUtc.getTime() - 54 * MIN)) {
       toFire.push("preQuali");
     }
     // ~75 min after qualifying start
-    if (inRange(nowMs, qualiUtc.getTime() + 75 * MIN, qualiUtc.getTime() + 77 * MIN)) {
+    if (inRange(nowMs, qualiUtc.getTime() + 69 * MIN, qualiUtc.getTime() + 81 * MIN)) {
       toFire.push("qualiResult");
     }
   }
