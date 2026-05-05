@@ -12,11 +12,11 @@ interface NotifItem {
 }
 
 const ITEMS: NotifItem[] = [
-  { key: "cpiRelease",  label: "CPI report",       sub: "1 hour before release · ~8:30am ET" },
-  { key: "fedDecision", label: "FOMC decision",     sub: "1 hour before announcement · ~2pm ET" },
-  { key: "gdpRelease",  label: "GDP report",        sub: "1 hour before release · ~8:30am ET" },
-  { key: "jobsReport",  label: "Jobs report (NFP)", sub: "1 hour before release · ~8:30am ET" },
-  { key: "pceRelease",  label: "PCE report",        sub: "1 hour before release · ~8:30am ET" },
+  { key: "cpiRelease",  label: "CPI report",       sub: "1 week before · 1 hour before · ~8:30am ET" },
+  { key: "fedDecision", label: "FOMC decision",     sub: "1 week before · 1 hour before · ~2pm ET" },
+  { key: "gdpRelease",  label: "GDP report",        sub: "1 week before · 1 hour before · ~8:30am ET" },
+  { key: "jobsReport",  label: "Jobs report (NFP)", sub: "1 week before · 1 hour before · ~8:30am ET" },
+  { key: "pceRelease",  label: "PCE report",        sub: "1 week before · 1 hour before · ~8:30am ET" },
 ];
 
 interface Props {
