@@ -118,7 +118,7 @@ function Sparkline({ values, color, targetLine }: {
 
 const KEY_RELEASES: Array<{ id: string; label: string; keywords: string[]; color: string }> = [
   { id: "cpi",  label: "CPI",  color: "#60a5fa", keywords: ["cpi", "consumer price index"] },
-  { id: "fomc", label: "FOMC", color: "#a78bfa", keywords: ["fomc", "federal funds rate", "interest rate decision", "monetary policy", "federal reserve"] },
+  { id: "fomc", label: "FOMC", color: "#a78bfa", keywords: ["fomc", "federal funds rate", "interest rate decision"] },
   { id: "gdp",  label: "GDP",  color: "#34d399", keywords: ["gdp", "gross domestic product"] },
   { id: "nfp",  label: "NFP",  color: "#fbbf24", keywords: ["nonfarm payroll", "nfp", "employment situation", "employment change"] },
   { id: "pce",  label: "PCE",  color: "#fb923c", keywords: ["pce", "personal consumption", "personal spending"] },

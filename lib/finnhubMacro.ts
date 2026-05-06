@@ -97,8 +97,6 @@ const HIGH_IMPACT_KEYWORDS = [
   "fomc",
   "federal funds",
   "interest rate decision",
-  "monetary policy",
-  "federal reserve",
   "unemployment",
   "retail sales",
   "ism manufacturing",
