@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Shield, RefreshCw, Loader2, Megaphone, X, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
-type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health";
+type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health" | "can_edit_baby";
 
 interface Perms {
   is_admin: boolean;
@@ -12,6 +12,7 @@ interface Perms {
   can_edit_f1: boolean;
   can_edit_macro: boolean;
   can_edit_health: boolean;
+  can_edit_baby: boolean;
 }
 
 interface UserRow {
@@ -28,6 +29,7 @@ const PERM_COLS: { key: PermKey; label: string; color: string }[] = [
   { key: "can_edit_f1",     label: "F1",     color: "#fbbf24" },
   { key: "can_edit_macro",  label: "Macro",  color: "#60a5fa" },
   { key: "can_edit_health", label: "Health", color: "#f87171" },
+  { key: "can_edit_baby",   label: "Baby",   color: "#fb7185" },
 ];
 
 const MODULES = ["all", "f1", "stocks", "macro", "health"] as const;
