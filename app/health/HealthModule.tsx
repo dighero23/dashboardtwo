@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -138,7 +138,7 @@ export default function HealthModule() {
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-3">
         <Heart className="w-10 h-10 text-red-400/40" />
         <p className="text-slate-400 text-sm text-center">You don't have access to Family Health.</p>
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">â† Back to home</Link>
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">← Back to home</Link>
       </main>
     );
   }
@@ -155,7 +155,7 @@ export default function HealthModule() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            â† Home
+            ← Home
           </Link>
           <div className="flex items-center gap-2">
             <div
@@ -236,7 +236,7 @@ export default function HealthModule() {
                         {e.title}
                       </p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        {fmtDate(e.eventDate)}{e.eventTime ? ` Â· ${e.eventTime.slice(0, 5)}` : ""}
+                        {fmtDate(e.eventDate)}{e.eventTime ? ` · ${e.eventTime.slice(0, 5)}` : ""}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -340,7 +340,7 @@ export default function HealthModule() {
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         Scheduled {fmtDate(e.eventDate)}
                         {e.completedDate && e.completedDate !== e.eventDate
-                          ? ` Â· Done ${fmtDate(e.completedDate)}`
+                          ? ` · Done ${fmtDate(e.completedDate)}`
                           : ""}
                       </p>
                     </div>

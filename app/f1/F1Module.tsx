@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -166,7 +166,7 @@ export default function F1Module() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            â† Home
+            ← Home
           </Link>
 
           {/* Title */}
@@ -241,7 +241,7 @@ export default function F1Module() {
           myTeam={myTeam?.id ?? null}
         />
 
-        {/* My driver + My team â€” side by side on desktop */}
+        {/* My driver + My team — side by side on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MyDriverCard myDriver={myDriver} onDriverChange={handleDriverChange} />
           <MyTeamCard   myTeam={myTeam}     onTeamChange={handleTeamChange} />
@@ -259,7 +259,7 @@ export default function F1Module() {
         {/* Footer */}
         <div className="pt-4 text-center">
           <p className="text-[10px] text-slate-600">
-            Powered by Jolpica-F1 Â· Open-Meteo
+            Powered by Jolpica-F1 · Open-Meteo
           </p>
         </div>
       </div>

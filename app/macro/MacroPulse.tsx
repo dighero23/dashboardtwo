@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { ensurePushSubscribed } from "@/lib/subscribePush";
 // â”€â”€â”€ Formatters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmt(n: number | null | undefined, decimals = 2): string {
-  if (n == null) return "â€”";
+  if (n == null) return "—";
   return n.toFixed(decimals);
 }
 
@@ -264,7 +264,7 @@ export default function MacroPulse() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            â† Home
+            ← Home
           </Link>
 
           <div className="flex items-center gap-2">
@@ -377,15 +377,15 @@ export default function MacroPulse() {
                       fedDir === "down" ? "text-emerald-400" :
                       fedDir === "up"   ? "text-red-400" : "text-white"
                     }`}>
-                      {fedFunds ? `${fmt(fedFunds.current)}%` : "â€”"}
+                      {fedFunds ? `${fmt(fedFunds.current)}%` : "—"}
                     </span>
                     {fedDir === "up"   && <TrendingUp   className="w-3.5 h-3.5 text-red-400" />}
                     {fedDir === "down" && <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {fedFunds?.prev != null
-                      ? `Prev ${fmt(fedFunds.prev)}% Â· ${fmtMonth(fedFunds.date)}`
-                      : fedFunds?.date ? fmtMonth(fedFunds.date) : "â€”"}
+                      ? `Prev ${fmt(fedFunds.prev)}% · ${fmtMonth(fedFunds.date)}`
+                      : fedFunds?.date ? fmtMonth(fedFunds.date) : "—"}
                   </p>
                 </div>
 
@@ -395,10 +395,10 @@ export default function MacroPulse() {
                     10Y Treasury
                   </p>
                   <p className="text-xl font-semibold tabular-nums text-white">
-                    {treasury10y ? `${fmt(treasury10y.rate)}%` : "â€”"}
+                    {treasury10y ? `${fmt(treasury10y.rate)}%` : "—"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {treasury10y ? fmtMonth(treasury10y.date) : "â€”"}
+                    {treasury10y ? fmtMonth(treasury10y.date) : "—"}
                   </p>
                 </div>
 
@@ -408,21 +408,21 @@ export default function MacroPulse() {
                     2Y Treasury
                   </p>
                   <p className="text-xl font-semibold tabular-nums text-white">
-                    {treasury2y ? `${fmt(treasury2y.rate)}%` : "â€”"}
+                    {treasury2y ? `${fmt(treasury2y.rate)}%` : "—"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {treasury2y ? fmtMonth(treasury2y.date) : "â€”"}
+                    {treasury2y ? fmtMonth(treasury2y.date) : "—"}
                   </p>
                 </div>
 
                 {/* 10Y-2Y Spread */}
                 <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 px-4 py-3.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1 font-medium">
-                    10Y â€“ 2Y Spread
+                    10Y – 2Y Spread
                   </p>
                   <div className="flex items-center gap-2">
                     <span className={`text-xl font-semibold tabular-nums ${yieldSpread ? spreadColor(yieldSpread.spread) : "text-slate-300"}`}>
-                      {yieldSpread ? `${fmt(yieldSpread.spread)}%` : "â€”"}
+                      {yieldSpread ? `${fmt(yieldSpread.spread)}%` : "—"}
                     </span>
                     {yieldSpread && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -435,7 +435,7 @@ export default function MacroPulse() {
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {yieldSpread ? fmtMonth(yieldSpread.date) : "â€”"}
+                    {yieldSpread ? fmtMonth(yieldSpread.date) : "—"}
                   </p>
                 </div>
               </>
@@ -445,7 +445,7 @@ export default function MacroPulse() {
 
         {/* â”€â”€ Inflation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
-          <SectionLabel>Inflation Â· 2% Fed target</SectionLabel>
+          <SectionLabel>Inflation · 2% Fed target</SectionLabel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h="h-24" />)
@@ -459,10 +459,10 @@ export default function MacroPulse() {
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className={`text-2xl font-semibold tabular-nums ${inflationColor(cpi?.yoy ?? null)}`}>
-                        {cpi?.yoy != null ? `${fmt(cpi.yoy)}%` : "â€”"}
+                        {cpi?.yoy != null ? `${fmt(cpi.yoy)}%` : "—"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {cpi ? fmtMonth(cpi.date) : "â€”"}
+                        {cpi ? fmtMonth(cpi.date) : "—"}
                       </p>
                     </div>
                     {(cpi?.history.length ?? 0) >= 2 && (
@@ -483,10 +483,10 @@ export default function MacroPulse() {
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className={`text-2xl font-semibold tabular-nums ${inflationColor(pce?.yoy ?? null)}`}>
-                        {pce?.yoy != null ? `${fmt(pce.yoy)}%` : "â€”"}
+                        {pce?.yoy != null ? `${fmt(pce.yoy)}%` : "—"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {pce ? fmtMonth(pce.date) : "â€”"}
+                        {pce ? fmtMonth(pce.date) : "—"}
                       </p>
                     </div>
                     {(pce?.history.length ?? 0) >= 2 && (
@@ -505,10 +505,10 @@ export default function MacroPulse() {
                     Unemployment
                   </p>
                   <p className="text-2xl font-semibold tabular-nums text-white">
-                    {unemployment ? `${fmt(unemployment.rate)}%` : "â€”"}
+                    {unemployment ? `${fmt(unemployment.rate)}%` : "—"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {unemployment ? fmtMonth(unemployment.date) : "â€”"}
+                    {unemployment ? fmtMonth(unemployment.date) : "—"}
                   </p>
                 </div>
               </>
@@ -530,10 +530,10 @@ export default function MacroPulse() {
                     VIX
                   </p>
                   <p className={`text-xl font-semibold tabular-nums ${vix ? vixColor(vix.value) : "text-slate-300"}`}>
-                    {vix ? fmt(vix.value) : "â€”"}
+                    {vix ? fmt(vix.value) : "—"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {vix ? vixLabel(vix.value) : "â€”"}
+                    {vix ? vixLabel(vix.value) : "—"}
                   </p>
                 </div>
 
@@ -557,7 +557,7 @@ export default function MacroPulse() {
 
         {/* â”€â”€ Economic Calendar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
-          <SectionLabel>Economic Calendar Â· Next 4 Weeks Â· High Impact</SectionLabel>
+          <SectionLabel>Economic Calendar · Next 4 Weeks · High Impact</SectionLabel>
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h="h-14" />)}
@@ -603,8 +603,8 @@ export default function MacroPulse() {
                           <p className="text-sm text-slate-200 leading-tight truncate">{e.event}</p>
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             {fmtEventTime(e.time)}
-                            {e.prev != null && ` Â· Prev ${fmt(e.prev, 1)}${e.unit ?? ""}`}
-                            {e.estimate != null && ` Â· Est ${fmt(e.estimate, 1)}${e.unit ?? ""}`}
+                            {e.prev != null && ` · Prev ${fmt(e.prev, 1)}${e.unit ?? ""}`}
+                            {e.estimate != null && ` · Est ${fmt(e.estimate, 1)}${e.unit ?? ""}`}
                           </p>
                         </div>
 
@@ -654,7 +654,7 @@ export default function MacroPulse() {
         {/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="pt-2 text-center space-y-0.5">
           <p className="text-[10px] text-slate-600">
-            Powered by FRED Â· Finnhub
+            Powered by FRED · Finnhub
           </p>
           {indicators?.updatedAt && (
             <p className="text-[10px] text-slate-700">

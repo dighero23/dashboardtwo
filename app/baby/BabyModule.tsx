@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -41,7 +41,7 @@ export default function BabyModule() {
     loadTimers();
   }, [user, canEditBaby, loadTimers]);
 
-  // Supabase Realtime â€” listen for baby_timers changes
+  // Supabase Realtime — listen for baby_timers changes
   useEffect(() => {
     if (!user || !canEditBaby) return;
     const supabase = createClient();
@@ -51,7 +51,7 @@ export default function BabyModule() {
         "postgres_changes",
         { event: "*", schema: "public", table: "baby_timers" },
         () => {
-          // Another parent changed a timer â€” reload state from DB
+          // Another parent changed a timer — reload state from DB
           loadTimers();
           setLogTick((t) => t + 1);
         }
@@ -107,8 +107,8 @@ export default function BabyModule() {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-3">
         <Baby className="w-10 h-10 text-rose-400/40" />
-        <p className="text-slate-400 text-sm text-center">Access restricted â€” contact admin</p>
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">â† Back to home</Link>
+        <p className="text-slate-400 text-sm text-center">Access restricted — contact admin</p>
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">← Back to home</Link>
       </main>
     );
   }
@@ -126,7 +126,7 @@ export default function BabyModule() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            â† Home
+            ← Home
           </Link>
 
           <div className="flex items-center gap-2">
