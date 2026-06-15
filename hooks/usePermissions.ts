@@ -12,6 +12,7 @@ export interface PermissionsState {
   canEditF1: boolean;
   canEditMacro: boolean;
   canEditHealth: boolean;
+  canEditBaby: boolean;
 }
 
 export function usePermissions(): PermissionsState {
@@ -22,6 +23,7 @@ export function usePermissions(): PermissionsState {
   const [canEditF1, setCanEditF1]           = useState(false);
   const [canEditMacro, setCanEditMacro]     = useState(false);
   const [canEditHealth, setCanEditHealth]   = useState(false);
+  const [canEditBaby, setCanEditBaby]       = useState(false);
 
   // Auth subscription
   useEffect(() => {
@@ -39,6 +41,7 @@ export function usePermissions(): PermissionsState {
         setCanEditF1(false);
         setCanEditMacro(false);
         setCanEditHealth(false);
+        setCanEditBaby(false);
       }
     });
     return () => subscription.unsubscribe();
@@ -52,6 +55,7 @@ export function usePermissions(): PermissionsState {
       setCanEditF1(false);
       setCanEditMacro(false);
       setCanEditHealth(false);
+      setCanEditBaby(false);
       return;
     }
     fetch("/api/auth/permissions")
@@ -63,9 +67,10 @@ export function usePermissions(): PermissionsState {
         setCanEditF1(admin || p?.can_edit_f1 === true);
         setCanEditMacro(admin || p?.can_edit_macro === true);
         setCanEditHealth(admin || p?.can_edit_health === true);
+        setCanEditBaby(admin || p?.can_edit_baby === true);
       })
       .catch(() => {});
   }, [user]);
 
-  return { user, loading, isAdmin, canEditStocks, canEditF1, canEditMacro, canEditHealth };
+  return { user, loading, isAdmin, canEditStocks, canEditF1, canEditMacro, canEditHealth, canEditBaby };
 }

@@ -7,11 +7,12 @@ export interface UserPermissions {
   can_edit_f1: boolean;
   can_edit_macro: boolean;
   can_edit_health: boolean;
+  can_edit_baby: boolean;
 }
 
 export type PermissionKey = keyof Omit<UserPermissions, "user_id">;
 
-const COLUMNS = "user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro, can_edit_health";
+const COLUMNS = "user_id, is_admin, can_edit_stocks, can_edit_f1, can_edit_macro, can_edit_health, can_edit_baby";
 
 export async function getPermissions(userId: string): Promise<UserPermissions | null> {
   const db = createAdminClient();

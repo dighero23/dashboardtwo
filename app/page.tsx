@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, Flag, BarChart3, ChevronRight, Zap, Shield, Heart } from "lucide-react";
+import { TrendingUp, Flag, BarChart3, ChevronRight, Zap, Shield, Heart, Baby } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { checkAdmin, checkPermission } from "@/lib/permissions";
 import HomeAuthButton from "./HomeAuthButton";
@@ -43,9 +43,13 @@ const modules = [
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [isAdmin, canEditHealth] = user
-    ? await Promise.all([checkAdmin(user.id), checkPermission(user.id, "can_edit_health")])
-    : [false, false];
+  const [isAdmin, canEditHealth, canEditBaby] = user
+    ? await Promise.all([
+        checkAdmin(user.id),
+        checkPermission(user.id, "can_edit_health"),
+        checkPermission(user.id, "can_edit_baby"),
+      ])
+    : [false, false, false];
   return (
     <main className="relative min-h-screen bg-slate-900 flex flex-col items-center justify-start px-4 pt-16 pb-10 sm:pt-20">
       {/* Auth button — top right */}
@@ -143,6 +147,25 @@ export default async function Home() {
               <div className="relative flex-1 min-w-0">
                 <p className="font-semibold text-white text-sm sm:text-base">Health</p>
                 <p className="text-slate-400 text-xs sm:text-sm mt-0.5">Family appointments & health events</p>
+              </div>
+              <ChevronRight className="relative flex-shrink-0 w-4 h-4 text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all duration-200" />
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* Baby Tracker — only for users with can_edit_baby */}
+      {canEditBaby && (
+        <div className="w-full max-w-md mt-3">
+          <Link href="/baby" className="group block">
+            <div className="relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl bg-slate-800/60 border border-rose-500/20 hover:bg-slate-800 transition-all duration-200 shadow-lg">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              <div className="relative flex-shrink-0 w-11 h-11 rounded-xl bg-slate-700/60 border border-rose-500/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <Baby className="w-5 h-5 text-rose-400" />
+              </div>
+              <div className="relative flex-1 min-w-0">
+                <p className="font-semibold text-white text-sm sm:text-base">Baby Tracker</p>
+                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">Feeding, medication & breastfeeding timers</p>
               </div>
               <ChevronRight className="relative flex-shrink-0 w-4 h-4 text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all duration-200" />
             </div>

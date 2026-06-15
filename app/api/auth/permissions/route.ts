@@ -8,6 +8,7 @@ const DEFAULT_PERMS = {
   can_edit_f1: false,
   can_edit_macro: false,
   can_edit_health: false,
+  can_edit_baby: false,
 };
 
 export async function GET() {
