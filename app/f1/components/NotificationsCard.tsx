@@ -12,7 +12,7 @@ interface NotifItem {
 }
 
 const ITEMS: NotifItem[] = [
-  { key: "weekAhead",   label: "1 week before race",  sub: "Mondays Â· 12pm CST" },
+  { key: "weekAhead",   label: "1 week before race",  sub: "Mondays · 12pm CST" },
   { key: "preQuali",    label: "1 hour before quali",  sub: "Saturday" },
   { key: "qualiResult", label: "Qualifying result",    sub: "Within 30 min" },
   { key: "preRace",     label: "1 hour before race",   sub: "Sunday" },
@@ -53,7 +53,7 @@ export default function NotificationsCard({ user, canEdit, prefs, onToggle, onLo
       </p>
 
       {!user ? (
-        /* â”€â”€ Collapsed state â€” not logged in â”€â”€ */
+        /* â”€â”€ Collapsed state — not logged in â”€â”€ */
         <button
           onClick={onLoginRequest}
           className="w-full text-left rounded-xl bg-slate-800/40 border border-slate-700/60 px-4 py-3.5 hover:bg-slate-800 hover:border-slate-700 transition-colors group"
@@ -72,7 +72,7 @@ export default function NotificationsCard({ user, canEdit, prefs, onToggle, onLo
           <p className="text-sm text-slate-500">F1 notifications not enabled for your account.</p>
         </div>
       ) : (
-        /* â”€â”€ Expanded state â€” logged in with permission â”€â”€ */
+        /* â”€â”€ Expanded state — logged in with permission â”€â”€ */
         <>
           <div className="flex justify-end mb-2">
             <PushSubscribeButton mobile />
