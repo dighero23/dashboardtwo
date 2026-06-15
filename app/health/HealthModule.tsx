@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -6,15 +6,15 @@ import {
   Heart, Plus, Check, Trash2, Pencil, Users, Calendar, ClipboardList, LogIn, AlertCircle,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
-import LoginModal from "@/app/stocks/components/LoginModal";
-import PushSubscribeButton from "@/app/stocks/components/PushSubscribeButton";
+import LoginModal from "@/app/components/LoginModal";
+import PushSubscribeButton from "@/app/components/PushSubscribeButton";
 import type { HealthEvent, Dependent, EventType } from "@/lib/health/types";
 import AddEventModal from "./components/AddEventModal";
 import AddDependentModal from "./components/AddDependentModal";
 import CompleteEventModal from "./components/CompleteEventModal";
 import EditEventModal from "./components/EditEventModal";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Tab = "upcoming" | "history" | "family";
 
@@ -47,7 +47,7 @@ function DaysChip({ days }: { days: number }) {
   return <span className="text-[11px] text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">{days}d</span>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function HealthModule() {
   const { user, loading: authLoading, canEditHealth } = usePermissions();
@@ -112,10 +112,10 @@ export default function HealthModule() {
     setEvents((prev) => prev.filter((e) => e.dependentId !== id));
   }
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (authLoading) return <main className="min-h-screen bg-slate-900" />;
 
-  // ── Not logged in ────────────────────────────────────────────────────────────
+  // â”€â”€ Not logged in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-4">
@@ -132,20 +132,20 @@ export default function HealthModule() {
     );
   }
 
-  // ── No permission ────────────────────────────────────────────────────────────
+  // â”€â”€ No permission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!canEditHealth) {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-3">
         <Heart className="w-10 h-10 text-red-400/40" />
         <p className="text-slate-400 text-sm text-center">You don't have access to Family Health.</p>
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">← Back to home</Link>
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">â† Back to home</Link>
       </main>
     );
   }
 
   const overdueCount = events.filter((e) => daysUntil(e.eventDate) < 0).length;
 
-  // ── Main UI ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Main UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <main className="min-h-screen bg-slate-900 pb-16">
       {/* Header */}
@@ -155,7 +155,7 @@ export default function HealthModule() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            ← Home
+            â† Home
           </Link>
           <div className="flex items-center gap-2">
             <div
@@ -192,7 +192,7 @@ export default function HealthModule() {
 
       <div className="px-4 max-w-lg mx-auto">
 
-        {/* ── Upcoming ────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Upcoming â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === "upcoming" && (
           <div className="space-y-2">
             {loading && [1, 2, 3].map((i) => (
@@ -236,7 +236,7 @@ export default function HealthModule() {
                         {e.title}
                       </p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        {fmtDate(e.eventDate)}{e.eventTime ? ` · ${e.eventTime.slice(0, 5)}` : ""}
+                        {fmtDate(e.eventDate)}{e.eventTime ? ` Â· ${e.eventTime.slice(0, 5)}` : ""}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -306,7 +306,7 @@ export default function HealthModule() {
           </div>
         )}
 
-        {/* ── History ─────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === "history" && (
           <div className="space-y-2">
             {history.length === 0 && (
@@ -340,7 +340,7 @@ export default function HealthModule() {
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         Scheduled {fmtDate(e.eventDate)}
                         {e.completedDate && e.completedDate !== e.eventDate
-                          ? ` · Done ${fmtDate(e.completedDate)}`
+                          ? ` Â· Done ${fmtDate(e.completedDate)}`
                           : ""}
                       </p>
                     </div>
@@ -360,7 +360,7 @@ export default function HealthModule() {
           </div>
         )}
 
-        {/* ── Family ──────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Family â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === "family" && (
           <div className="space-y-2">
             {dependents.length === 0 && (
@@ -452,3 +452,4 @@ export default function HealthModule() {
     </main>
   );
 }
+

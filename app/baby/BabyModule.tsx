@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Baby, LogIn, Plus, Wifi, WifiOff } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { createClient } from "@/lib/supabase/client";
-import LoginModal from "@/app/stocks/components/LoginModal";
-import PushSubscribeButton from "@/app/stocks/components/PushSubscribeButton";
+import LoginModal from "@/app/components/LoginModal";
+import PushSubscribeButton from "@/app/components/PushSubscribeButton";
 import BottleCard from "./components/BottleCard";
 import MedicationCard from "./components/MedicationCard";
 import BreastfeedingCard from "./components/BreastfeedingCard";
@@ -41,7 +41,7 @@ export default function BabyModule() {
     loadTimers();
   }, [user, canEditBaby, loadTimers]);
 
-  // Supabase Realtime — listen for baby_timers changes
+  // Supabase Realtime â€” listen for baby_timers changes
   useEffect(() => {
     if (!user || !canEditBaby) return;
     const supabase = createClient();
@@ -51,7 +51,7 @@ export default function BabyModule() {
         "postgres_changes",
         { event: "*", schema: "public", table: "baby_timers" },
         () => {
-          // Another parent changed a timer — reload state from DB
+          // Another parent changed a timer â€” reload state from DB
           loadTimers();
           setLogTick((t) => t + 1);
         }
@@ -82,10 +82,10 @@ export default function BabyModule() {
     setTimers((prev) => prev.filter((t) => t.id !== id));
   }
 
-  // ── Loading skeleton ──────────────────────────────────────────────────────────
+  // â”€â”€ Loading skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (authLoading) return <main className="min-h-screen bg-slate-900" />;
 
-  // ── Not logged in ─────────────────────────────────────────────────────────────
+  // â”€â”€ Not logged in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-4">
@@ -102,13 +102,13 @@ export default function BabyModule() {
     );
   }
 
-  // ── No permission ─────────────────────────────────────────────────────────────
+  // â”€â”€ No permission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!canEditBaby) {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 gap-3">
         <Baby className="w-10 h-10 text-rose-400/40" />
-        <p className="text-slate-400 text-sm text-center">Access restricted — contact admin</p>
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">← Back to home</Link>
+        <p className="text-slate-400 text-sm text-center">Access restricted â€” contact admin</p>
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">â† Back to home</Link>
       </main>
     );
   }
@@ -116,7 +116,7 @@ export default function BabyModule() {
   const bottleTimer = timers.find((t) => t.type === "bottle");
   const medTimers   = timers.filter((t) => t.type === "medication");
 
-  // ── Main UI ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Main UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <main className="min-h-screen bg-slate-900 pb-16">
       {/* Header */}
@@ -126,7 +126,7 @@ export default function BabyModule() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            ← Home
+            â† Home
           </Link>
 
           <div className="flex items-center gap-2">
@@ -203,3 +203,4 @@ export default function BabyModule() {
     </main>
   );
 }
+

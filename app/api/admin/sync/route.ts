@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { checkAdmin } from "@/lib/permissions";
-import { fetchAndCachePrices } from "@/lib/buildTickerData";
 
 export const dynamic = "force-dynamic";
 
-const MODULES = ["f1", "stocks", "macro", "health", "all"] as const;
+const MODULES = ["f1", "macro", "all"] as const;
 type SyncMod = typeof MODULES[number];
 
 export async function POST(req: NextRequest) {
@@ -33,15 +32,6 @@ export async function POST(req: NextRequest) {
     result.f1 = data?.length ?? 0;
   }
 
-  if (mod === "stocks" || mod === "all") {
-    try {
-      await fetchAndCachePrices();
-      result.stocks = "refreshed";
-    } catch {
-      result.stocks = "error";
-    }
-  }
-
   if (mod === "macro" || mod === "all") {
     const { data } = await db
       .from("macro_cache")
@@ -49,10 +39,6 @@ export async function POST(req: NextRequest) {
       .gte("cache_key", "")
       .select("cache_key");
     result.macro = data?.length ?? 0;
-  }
-
-  if (mod === "health" || mod === "all") {
-    result.health = 0;
   }
 
   return NextResponse.json({ ok: true, result });

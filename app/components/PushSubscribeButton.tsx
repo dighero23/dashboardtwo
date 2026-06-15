@@ -6,7 +6,7 @@ import { BellRing, BellOff, Loader2 } from "lucide-react";
 type State = "loading" | "unsupported" | "denied" | "subscribed" | "unsubscribed";
 
 interface Props {
-  mobile?: boolean; // compact icon-only style for mobile action bar
+  mobile?: boolean;
 }
 
 export default function PushSubscribeButton({ mobile = false }: Props) {
@@ -24,7 +24,6 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
       const permission = (window as { Notification: { permission: NotificationPermission } }).Notification.permission;
 
       if (permission === "denied") {
-        // Silently clean up any stale subscription from Supabase
         navigator.serviceWorker.getRegistration("/").then(async (reg) => {
           if (!reg) return;
           const sub = await reg.pushManager.getSubscription();
@@ -45,21 +44,18 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
         .then(async (reg) => {
           const sub = await reg.pushManager.getSubscription();
           if (!sub) { setState("unsubscribed"); return; }
-          // Browser has a subscription — verify it's still registered in Supabase.
-          // If not (e.g. server cleaned it up after a 410), treat as unsubscribed.
           try {
             const res = await fetch("/api/push");
             const { subscribed } = await res.json() as { subscribed: boolean };
             setState(subscribed ? "subscribed" : "unsubscribed");
           } catch {
-            setState("subscribed"); // network error — assume subscribed, avoid false negatives
+            setState("subscribed");
           }
         })
         .catch(() => setState("unsubscribed"));
     }
 
     checkState();
-
     const onVisible = () => { if (document.visibilityState === "visible") checkState(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
@@ -69,27 +65,18 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
     setBusy(true);
     try {
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setState("denied");
-        return;
-      }
-
+      if (permission !== "granted") { setState("denied"); return; }
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
       });
-
       const json = sub.toJSON();
       await fetch("/api/push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: json.endpoint,
-          keys: json.keys,
-        }),
+        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
       });
-
       setState("subscribed");
     } catch (err) {
       console.error("[push] subscribe error:", err);
@@ -122,89 +109,45 @@ export default function PushSubscribeButton({ mobile = false }: Props) {
 
   if (state === "unsupported" || state === "loading") return null;
 
-  // ── Mobile: compact label style matching other action bar buttons ──
   if (mobile) {
     if (state === "denied") {
       return (
-        <span
-          title="Notifications blocked in browser settings"
-          className="flex items-center gap-1.5 text-xs border border-amber-500/30 text-amber-500/60 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
-        >
-          <BellOff className="w-3.5 h-3.5" />
-          Push blocked
+        <span title="Notifications blocked in browser settings" className="flex items-center gap-1.5 text-xs border border-amber-500/30 text-amber-500/60 rounded-lg px-3 py-1.5 cursor-not-allowed select-none">
+          <BellOff className="w-3.5 h-3.5" /> Push blocked
         </span>
       );
     }
     if (state === "subscribed") {
       return (
-        <button
-          onClick={unsubscribe}
-          disabled={busy}
-          title="Push on — tap to disable"
-          className="flex items-center gap-1.5 text-xs border border-amber-500/40 text-amber-400 rounded-lg px-3 py-1.5 transition-colors"
-        >
-          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
-          Push on
+        <button onClick={unsubscribe} disabled={busy} className="flex items-center gap-1.5 text-xs border border-amber-500/40 text-amber-400 rounded-lg px-3 py-1.5 transition-colors">
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />} Push on
         </button>
       );
     }
     return (
-      <button
-        onClick={subscribe}
-        disabled={busy}
-        title="Enable push notifications"
-        className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
-        Push
+      <button onClick={subscribe} disabled={busy} className="flex items-center gap-1.5 text-xs border border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors">
+        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />} Push
       </button>
     );
   }
 
-  // ── Desktop: full-width nav button ──
   if (state === "denied") {
     return (
-      <span
-        title="Notifications blocked in browser settings"
-        className="hidden sm:flex items-center gap-1.5 text-xs text-amber-500/60 border border-amber-500/30 rounded-lg px-3 py-1.5 cursor-not-allowed select-none"
-      >
-        <BellOff className="w-3.5 h-3.5" />
-        Blocked
+      <span title="Notifications blocked" className="hidden sm:flex items-center gap-1.5 text-xs text-amber-500/60 border border-amber-500/30 rounded-lg px-3 py-1.5 cursor-not-allowed select-none">
+        <BellOff className="w-3.5 h-3.5" /> Blocked
       </span>
     );
   }
-
   if (state === "subscribed") {
     return (
-      <button
-        onClick={unsubscribe}
-        disabled={busy}
-        title="Push notifications on — click to disable"
-        className="hidden sm:flex items-center gap-1.5 text-xs text-amber-400 border border-amber-500/40 hover:border-amber-500/70 rounded-lg px-3 py-1.5 transition-colors"
-      >
-        {busy ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <BellRing className="w-3.5 h-3.5" />
-        )}
-        Push on
+      <button onClick={unsubscribe} disabled={busy} className="hidden sm:flex items-center gap-1.5 text-xs text-amber-400 border border-amber-500/40 hover:border-amber-500/70 rounded-lg px-3 py-1.5 transition-colors">
+        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />} Push on
       </button>
     );
   }
-
   return (
-    <button
-      onClick={subscribe}
-      disabled={busy}
-      title="Enable push notifications for price alerts"
-      className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors"
-    >
-      {busy ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <BellRing className="w-3.5 h-3.5" />
-      )}
-      Push
+    <button onClick={subscribe} disabled={busy} className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg px-3 py-1.5 transition-colors">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />} Push
     </button>
   );
 }

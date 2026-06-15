@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 const MODULE_FILTER: Record<string, string | null> = {
   f1:     "can_edit_f1",
   health: "can_edit_health",
-  stocks: "can_edit_stocks",
   macro:  "can_edit_macro",
+  baby:   "can_edit_baby",
   all:    null,
 };
 

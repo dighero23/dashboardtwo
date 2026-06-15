@@ -4,7 +4,6 @@ import { getPermissions } from "@/lib/permissions";
 
 const DEFAULT_PERMS = {
   is_admin: false,
-  can_edit_stocks: false,
   can_edit_f1: false,
   can_edit_macro: false,
   can_edit_health: false,

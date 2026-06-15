@@ -36,24 +36,14 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Sign in</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-          >
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Email</label>
@@ -67,7 +57,6 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
               placeholder="you@example.com"
             />
           </div>
-
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Password</label>
             <input
@@ -79,13 +68,11 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
               placeholder="••••••••"
             />
           </div>
-
           {error && (
             <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
               {error}
             </p>
           )}
-
           <button
             type="submit"
             disabled={loading}

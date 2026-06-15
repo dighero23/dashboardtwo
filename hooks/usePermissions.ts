@@ -8,7 +8,6 @@ export interface PermissionsState {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
-  canEditStocks: boolean;
   canEditF1: boolean;
   canEditMacro: boolean;
   canEditHealth: boolean;
@@ -16,16 +15,14 @@ export interface PermissionsState {
 }
 
 export function usePermissions(): PermissionsState {
-  const [user, setUser]                     = useState<User | null>(null);
-  const [loading, setLoading]               = useState(true);
-  const [isAdmin, setIsAdmin]               = useState(false);
-  const [canEditStocks, setCanEditStocks]   = useState(false);
-  const [canEditF1, setCanEditF1]           = useState(false);
-  const [canEditMacro, setCanEditMacro]     = useState(false);
-  const [canEditHealth, setCanEditHealth]   = useState(false);
-  const [canEditBaby, setCanEditBaby]       = useState(false);
+  const [user, setUser]                   = useState<User | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [isAdmin, setIsAdmin]             = useState(false);
+  const [canEditF1, setCanEditF1]         = useState(false);
+  const [canEditMacro, setCanEditMacro]   = useState(false);
+  const [canEditHealth, setCanEditHealth] = useState(false);
+  const [canEditBaby, setCanEditBaby]     = useState(false);
 
-  // Auth subscription
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -37,7 +34,6 @@ export function usePermissions(): PermissionsState {
       setUser(u);
       if (!u) {
         setIsAdmin(false);
-        setCanEditStocks(false);
         setCanEditF1(false);
         setCanEditMacro(false);
         setCanEditHealth(false);
@@ -47,11 +43,9 @@ export function usePermissions(): PermissionsState {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch permissions whenever the user changes
   useEffect(() => {
     if (!user) {
       setIsAdmin(false);
-      setCanEditStocks(false);
       setCanEditF1(false);
       setCanEditMacro(false);
       setCanEditHealth(false);
@@ -63,7 +57,6 @@ export function usePermissions(): PermissionsState {
       .then((p) => {
         const admin = p?.is_admin === true;
         setIsAdmin(admin);
-        setCanEditStocks(admin || p?.can_edit_stocks === true);
         setCanEditF1(admin || p?.can_edit_f1 === true);
         setCanEditMacro(admin || p?.can_edit_macro === true);
         setCanEditHealth(admin || p?.can_edit_health === true);
@@ -72,5 +65,5 @@ export function usePermissions(): PermissionsState {
       .catch(() => {});
   }, [user]);
 
-  return { user, loading, isAdmin, canEditStocks, canEditF1, canEditMacro, canEditHealth, canEditBaby };
+  return { user, loading, isAdmin, canEditF1, canEditMacro, canEditHealth, canEditBaby };
 }

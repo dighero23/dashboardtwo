@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Flag, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
-import LoginModal from "@/app/stocks/components/LoginModal";
+import LoginModal from "@/app/components/LoginModal";
 import type {
   NextRaceResponse,
   LastRaceResponse,
@@ -23,7 +23,7 @@ import MyDriverCard       from "./components/MyDriverCard";
 import MyTeamCard         from "./components/MyTeamCard";
 import NotificationsCard  from "./components/NotificationsCard";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface MyPick { id: string; name: string; }
 
@@ -31,7 +31,7 @@ const NOTIF_DEFAULTS: F1NotificationPrefs = {
   weekAhead: false, preQuali: false, qualiResult: false, preRace: false, raceResult: false,
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function F1Module() {
   // Auth + permissions
@@ -52,7 +52,7 @@ export default function F1Module() {
   const [seasons,   setSeasons]   = useState<number[]>([new Date().getFullYear()]);
   const [selectedSeason, setSelectedSeason] = useState(new Date().getFullYear());
 
-  // ── Load notification prefs when user has F1 access ──────────────────────
+  // â”€â”€ Load notification prefs when user has F1 access â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user || !canEditF1) return;
     fetch("/api/f1/notifications")
@@ -61,7 +61,7 @@ export default function F1Module() {
       .catch(() => {});
   }, [user, canEditF1]);
 
-  // ── Hydrate localStorage preferences (client-only) ────────────────────────
+  // â”€â”€ Hydrate localStorage preferences (client-only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     try {
       const tz = localStorage.getItem("f1-timezone") as Timezone | null;
@@ -78,7 +78,7 @@ export default function F1Module() {
     } catch {}
   }, []);
 
-  // ── Fetch seasons list ────────────────────────────────────────────────────
+  // â”€â”€ Fetch seasons list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     fetch("/api/f1/seasons")
       .then((r) => r.json())
@@ -86,7 +86,7 @@ export default function F1Module() {
       .catch(() => {});
   }, []);
 
-  // ── Fetch main data on mount ───────────────────────────────────────────────
+  // â”€â”€ Fetch main data on mount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     async function load() {
       const [nextRes, lastRes, upcomingRes] = await Promise.allSettled([
@@ -104,7 +104,7 @@ export default function F1Module() {
     load();
   }, []);
 
-  // ── Fetch standings when season changes ────────────────────────────────────
+  // â”€â”€ Fetch standings when season changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     fetch(`/api/f1/standings?season=${selectedSeason}`)
       .then((r) => r.json())
@@ -112,7 +112,7 @@ export default function F1Module() {
       .catch(() => {});
   }, [selectedSeason]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function handleTimezone(tz: Timezone) {
     setTimezone(tz);
@@ -154,11 +154,11 @@ export default function F1Module() {
     [notifPrefs, canEditF1]
   );
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Sticky header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           {/* Back */}
@@ -166,7 +166,7 @@ export default function F1Module() {
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            ← Home
+            â† Home
           </Link>
 
           {/* Title */}
@@ -220,7 +220,7 @@ export default function F1Module() {
         </div>
       </header>
 
-      {/* ── Content ───────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="max-w-md sm:max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5 sm:space-y-6">
         {/* Last race */}
         <LastRaceCard lastRace={lastRace} />
@@ -241,7 +241,7 @@ export default function F1Module() {
           myTeam={myTeam?.id ?? null}
         />
 
-        {/* My driver + My team — side by side on desktop */}
+        {/* My driver + My team â€” side by side on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MyDriverCard myDriver={myDriver} onDriverChange={handleDriverChange} />
           <MyTeamCard   myTeam={myTeam}     onTeamChange={handleTeamChange} />
@@ -259,7 +259,7 @@ export default function F1Module() {
         {/* Footer */}
         <div className="pt-4 text-center">
           <p className="text-[10px] text-slate-600">
-            Powered by Jolpica-F1 · Open-Meteo
+            Powered by Jolpica-F1 Â· Open-Meteo
           </p>
         </div>
       </div>
@@ -273,3 +273,4 @@ export default function F1Module() {
     </div>
   );
 }
+

@@ -1,21 +1,10 @@
 import Link from "next/link";
-import { TrendingUp, Flag, BarChart3, ChevronRight, Zap, Shield, Heart, Baby } from "lucide-react";
+import { Flag, BarChart3, ChevronRight, Zap, Shield, Heart, Baby } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { checkAdmin, checkPermission } from "@/lib/permissions";
 import HomeAuthButton from "./HomeAuthButton";
 
 const modules = [
-  {
-    id: "stocks",
-    icon: TrendingUp,
-    title: "Stock Tracker",
-    subtitle: "Real-time watchlist with price alerts",
-    href: "/stocks",
-    active: true,
-    accentColor: "text-emerald-400",
-    borderColor: "border-emerald-500/30",
-    bgGlow: "from-emerald-500/10",
-  },
   {
     id: "f1",
     icon: Flag,

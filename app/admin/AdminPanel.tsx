@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Shield, RefreshCw, Loader2, Megaphone, X, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
-type PermKey = "is_admin" | "can_edit_stocks" | "can_edit_f1" | "can_edit_macro" | "can_edit_health" | "can_edit_baby";
+type PermKey = "is_admin" | "can_edit_f1" | "can_edit_macro" | "can_edit_health" | "can_edit_baby";
 
 interface Perms {
   is_admin: boolean;
-  can_edit_stocks: boolean;
   can_edit_f1: boolean;
   can_edit_macro: boolean;
   can_edit_health: boolean;
@@ -25,27 +24,26 @@ interface UserRow {
 
 const PERM_COLS: { key: PermKey; label: string; color: string }[] = [
   { key: "is_admin",        label: "Admin",  color: "#a78bfa" },
-  { key: "can_edit_stocks", label: "Stocks", color: "#34d399" },
   { key: "can_edit_f1",     label: "F1",     color: "#fbbf24" },
   { key: "can_edit_macro",  label: "Macro",  color: "#60a5fa" },
   { key: "can_edit_health", label: "Health", color: "#f87171" },
   { key: "can_edit_baby",   label: "Baby",   color: "#fb7185" },
 ];
 
-const MODULES = ["all", "f1", "stocks", "macro", "health"] as const;
+const MODULES = ["all", "f1", "macro", "health", "baby"] as const;
 type Mod = typeof MODULES[number];
 
 const MOD_LABELS: Record<Mod, string> = {
-  all: "Everyone", f1: "F1", stocks: "Stocks", macro: "Macro", health: "Health",
+  all: "Everyone", f1: "F1", macro: "Macro", health: "Health", baby: "Baby",
 };
 const MOD_COLORS: Record<Mod, string> = {
-  all: "#a78bfa", f1: "#fbbf24", stocks: "#34d399", macro: "#60a5fa", health: "#f87171",
+  all: "#a78bfa", f1: "#fbbf24", macro: "#60a5fa", health: "#f87171", baby: "#fb7185",
 };
 
-const SYNC_MODULES = ["all", "f1", "stocks", "macro"] as const;
+const SYNC_MODULES = ["all", "f1", "macro"] as const;
 type SyncMod = typeof SYNC_MODULES[number];
 const SYNC_LABELS: Record<SyncMod, string> = {
-  all: "All", f1: "F1", stocks: "Stocks", macro: "Macro",
+  all: "All", f1: "F1", macro: "Macro",
 };
 
 function Toggle({

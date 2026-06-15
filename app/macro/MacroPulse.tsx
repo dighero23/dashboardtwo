@@ -1,19 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { BarChart3, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
-import LoginModal from "@/app/stocks/components/LoginModal";
+import LoginModal from "@/app/components/LoginModal";
 import type { IndicatorsResponse, MacroEvent, MacroNotificationPrefs } from "@/lib/macro/types";
 import NotificationsCard from "./components/NotificationsCard";
 import { ensurePushSubscribed } from "@/lib/subscribePush";
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Formatters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmt(n: number | null | undefined, decimals = 2): string {
-  if (n == null) return "—";
+  if (n == null) return "â€”";
   return n.toFixed(decimals);
 }
 
@@ -36,7 +36,7 @@ function fmtEventTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }) + " CST";
 }
 
-// ─── Color helpers ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Color helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function inflationColor(yoy: number | null): string {
   if (yoy == null) return "text-slate-300";
@@ -78,7 +78,7 @@ function vixLabel(v: number): string {
   return "Low volatility";
 }
 
-// ─── Sparkline ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Sparkline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Sparkline({ values, color, targetLine }: {
   values: number[];
@@ -114,7 +114,7 @@ function Sparkline({ values, color, targetLine }: {
   );
 }
 
-// ─── Key release classifier (mirrors checkMacroNotifications keywords) ────────
+// â”€â”€â”€ Key release classifier (mirrors checkMacroNotifications keywords) â”€â”€â”€â”€â”€â”€â”€â”€
 
 const KEY_RELEASES: Array<{ id: string; label: string; keywords: string[]; color: string }> = [
   { id: "cpi",  label: "CPI",  color: "#60a5fa", keywords: ["cpi", "consumer price index"] },
@@ -134,7 +134,7 @@ function findNextRelease(events: MacroEvent[], keywords: string[]): MacroEvent |
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())[0] ?? null;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -148,7 +148,7 @@ function Skeleton({ h = "h-20" }: { h?: string }) {
   return <div className={`${h} rounded-xl bg-slate-800/40 border border-slate-700/40 animate-pulse`} />;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const NOTIF_DEFAULTS: MacroNotificationPrefs = {
   cpiRelease: false, fedDecision: false, gdpRelease: false, jobsReport: false, pceRelease: false,
@@ -169,8 +169,8 @@ export default function MacroPulse() {
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
-  // ── Load notification prefs when user has Macro access ──────────────────
+  // â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Load notification prefs when user has Macro access â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user || !canEditMacro) return;
     fetch("/api/macro/notifications")
@@ -257,14 +257,14 @@ export default function MacroPulse() {
   return (
     <div className="min-h-screen bg-slate-900">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link
             href="/"
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60"
           >
-            ← Home
+            â† Home
           </Link>
 
           <div className="flex items-center gap-2">
@@ -308,10 +308,10 @@ export default function MacroPulse() {
         </div>
       </header>
 
-      {/* ── Content ─────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="max-w-md sm:max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* ── Key Releases ────────────────────────────────────────────────── */}
+        {/* â”€â”€ Key Releases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
           <SectionLabel>Key Releases</SectionLabel>
           {loading ? (
@@ -359,7 +359,7 @@ export default function MacroPulse() {
           )}
         </section>
 
-        {/* ── Monetary Policy ─────────────────────────────────────────────── */}
+        {/* â”€â”€ Monetary Policy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
           <SectionLabel>Monetary Policy</SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -377,15 +377,15 @@ export default function MacroPulse() {
                       fedDir === "down" ? "text-emerald-400" :
                       fedDir === "up"   ? "text-red-400" : "text-white"
                     }`}>
-                      {fedFunds ? `${fmt(fedFunds.current)}%` : "—"}
+                      {fedFunds ? `${fmt(fedFunds.current)}%` : "â€”"}
                     </span>
                     {fedDir === "up"   && <TrendingUp   className="w-3.5 h-3.5 text-red-400" />}
                     {fedDir === "down" && <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {fedFunds?.prev != null
-                      ? `Prev ${fmt(fedFunds.prev)}% · ${fmtMonth(fedFunds.date)}`
-                      : fedFunds?.date ? fmtMonth(fedFunds.date) : "—"}
+                      ? `Prev ${fmt(fedFunds.prev)}% Â· ${fmtMonth(fedFunds.date)}`
+                      : fedFunds?.date ? fmtMonth(fedFunds.date) : "â€”"}
                   </p>
                 </div>
 
@@ -395,10 +395,10 @@ export default function MacroPulse() {
                     10Y Treasury
                   </p>
                   <p className="text-xl font-semibold tabular-nums text-white">
-                    {treasury10y ? `${fmt(treasury10y.rate)}%` : "—"}
+                    {treasury10y ? `${fmt(treasury10y.rate)}%` : "â€”"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {treasury10y ? fmtMonth(treasury10y.date) : "—"}
+                    {treasury10y ? fmtMonth(treasury10y.date) : "â€”"}
                   </p>
                 </div>
 
@@ -408,21 +408,21 @@ export default function MacroPulse() {
                     2Y Treasury
                   </p>
                   <p className="text-xl font-semibold tabular-nums text-white">
-                    {treasury2y ? `${fmt(treasury2y.rate)}%` : "—"}
+                    {treasury2y ? `${fmt(treasury2y.rate)}%` : "â€”"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {treasury2y ? fmtMonth(treasury2y.date) : "—"}
+                    {treasury2y ? fmtMonth(treasury2y.date) : "â€”"}
                   </p>
                 </div>
 
                 {/* 10Y-2Y Spread */}
                 <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 px-4 py-3.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1 font-medium">
-                    10Y – 2Y Spread
+                    10Y â€“ 2Y Spread
                   </p>
                   <div className="flex items-center gap-2">
                     <span className={`text-xl font-semibold tabular-nums ${yieldSpread ? spreadColor(yieldSpread.spread) : "text-slate-300"}`}>
-                      {yieldSpread ? `${fmt(yieldSpread.spread)}%` : "—"}
+                      {yieldSpread ? `${fmt(yieldSpread.spread)}%` : "â€”"}
                     </span>
                     {yieldSpread && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -435,7 +435,7 @@ export default function MacroPulse() {
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {yieldSpread ? fmtMonth(yieldSpread.date) : "—"}
+                    {yieldSpread ? fmtMonth(yieldSpread.date) : "â€”"}
                   </p>
                 </div>
               </>
@@ -443,9 +443,9 @@ export default function MacroPulse() {
           </div>
         </section>
 
-        {/* ── Inflation ───────────────────────────────────────────────────── */}
+        {/* â”€â”€ Inflation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
-          <SectionLabel>Inflation · 2% Fed target</SectionLabel>
+          <SectionLabel>Inflation Â· 2% Fed target</SectionLabel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h="h-24" />)
@@ -459,10 +459,10 @@ export default function MacroPulse() {
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className={`text-2xl font-semibold tabular-nums ${inflationColor(cpi?.yoy ?? null)}`}>
-                        {cpi?.yoy != null ? `${fmt(cpi.yoy)}%` : "—"}
+                        {cpi?.yoy != null ? `${fmt(cpi.yoy)}%` : "â€”"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {cpi ? fmtMonth(cpi.date) : "—"}
+                        {cpi ? fmtMonth(cpi.date) : "â€”"}
                       </p>
                     </div>
                     {(cpi?.history.length ?? 0) >= 2 && (
@@ -483,10 +483,10 @@ export default function MacroPulse() {
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className={`text-2xl font-semibold tabular-nums ${inflationColor(pce?.yoy ?? null)}`}>
-                        {pce?.yoy != null ? `${fmt(pce.yoy)}%` : "—"}
+                        {pce?.yoy != null ? `${fmt(pce.yoy)}%` : "â€”"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {pce ? fmtMonth(pce.date) : "—"}
+                        {pce ? fmtMonth(pce.date) : "â€”"}
                       </p>
                     </div>
                     {(pce?.history.length ?? 0) >= 2 && (
@@ -505,10 +505,10 @@ export default function MacroPulse() {
                     Unemployment
                   </p>
                   <p className="text-2xl font-semibold tabular-nums text-white">
-                    {unemployment ? `${fmt(unemployment.rate)}%` : "—"}
+                    {unemployment ? `${fmt(unemployment.rate)}%` : "â€”"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {unemployment ? fmtMonth(unemployment.date) : "—"}
+                    {unemployment ? fmtMonth(unemployment.date) : "â€”"}
                   </p>
                 </div>
               </>
@@ -516,7 +516,7 @@ export default function MacroPulse() {
           </div>
         </section>
 
-        {/* ── Market Sentiment ────────────────────────────────────────────── */}
+        {/* â”€â”€ Market Sentiment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
           <SectionLabel>Market Sentiment</SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -530,10 +530,10 @@ export default function MacroPulse() {
                     VIX
                   </p>
                   <p className={`text-xl font-semibold tabular-nums ${vix ? vixColor(vix.value) : "text-slate-300"}`}>
-                    {vix ? fmt(vix.value) : "—"}
+                    {vix ? fmt(vix.value) : "â€”"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {vix ? vixLabel(vix.value) : "—"}
+                    {vix ? vixLabel(vix.value) : "â€”"}
                   </p>
                 </div>
 
@@ -555,9 +555,9 @@ export default function MacroPulse() {
           </div>
         </section>
 
-        {/* ── Economic Calendar ────────────────────────────────────────────── */}
+        {/* â”€â”€ Economic Calendar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
-          <SectionLabel>Economic Calendar · Next 4 Weeks · High Impact</SectionLabel>
+          <SectionLabel>Economic Calendar Â· Next 4 Weeks Â· High Impact</SectionLabel>
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h="h-14" />)}
@@ -603,8 +603,8 @@ export default function MacroPulse() {
                           <p className="text-sm text-slate-200 leading-tight truncate">{e.event}</p>
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             {fmtEventTime(e.time)}
-                            {e.prev != null && ` · Prev ${fmt(e.prev, 1)}${e.unit ?? ""}`}
-                            {e.estimate != null && ` · Est ${fmt(e.estimate, 1)}${e.unit ?? ""}`}
+                            {e.prev != null && ` Â· Prev ${fmt(e.prev, 1)}${e.unit ?? ""}`}
+                            {e.estimate != null && ` Â· Est ${fmt(e.estimate, 1)}${e.unit ?? ""}`}
                           </p>
                         </div>
 
@@ -642,7 +642,7 @@ export default function MacroPulse() {
           )}
         </section>
 
-        {/* ── Notifications ───────────────────────────────────────────────── */}
+        {/* â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <NotificationsCard
           user={user}
           canEdit={canEditMacro}
@@ -651,10 +651,10 @@ export default function MacroPulse() {
           onLoginRequest={() => setShowLogin(true)}
         />
 
-        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="pt-2 text-center space-y-0.5">
           <p className="text-[10px] text-slate-600">
-            Powered by FRED · Finnhub
+            Powered by FRED Â· Finnhub
           </p>
           {indicators?.updatedAt && (
             <p className="text-[10px] text-slate-700">
@@ -674,3 +674,4 @@ export default function MacroPulse() {
     </div>
   );
 }
+

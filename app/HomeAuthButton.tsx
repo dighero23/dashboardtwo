@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
-import LoginModal from "@/app/stocks/components/LoginModal";
+import LoginModal from "@/app/components/LoginModal";
 
 export default function HomeAuthButton() {
   const { user, loading } = usePermissions();
@@ -40,3 +40,4 @@ export default function HomeAuthButton() {
     </>
   );
 }
+

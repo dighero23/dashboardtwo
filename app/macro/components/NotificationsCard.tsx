@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { LogIn } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { MacroNotificationPrefs } from "@/lib/macro/types";
-import PushSubscribeButton from "@/app/stocks/components/PushSubscribeButton";
+import PushSubscribeButton from "@/app/components/PushSubscribeButton";
 
 interface NotifItem {
   key: keyof MacroNotificationPrefs;
@@ -12,11 +12,11 @@ interface NotifItem {
 }
 
 const ITEMS: NotifItem[] = [
-  { key: "cpiRelease",  label: "CPI report",       sub: "1 week before · 1 hour before · ~8:30am ET" },
-  { key: "fedDecision", label: "FOMC decision",     sub: "1 week before · 1 hour before · ~2pm ET" },
-  { key: "gdpRelease",  label: "GDP report",        sub: "1 week before · 1 hour before · ~8:30am ET" },
-  { key: "jobsReport",  label: "Jobs report (NFP)", sub: "1 week before · 1 hour before · ~8:30am ET" },
-  { key: "pceRelease",  label: "PCE report",        sub: "1 week before · 1 hour before · ~8:30am ET" },
+  { key: "cpiRelease",  label: "CPI report",       sub: "1 week before Â· 1 hour before Â· ~8:30am ET" },
+  { key: "fedDecision", label: "FOMC decision",     sub: "1 week before Â· 1 hour before Â· ~2pm ET" },
+  { key: "gdpRelease",  label: "GDP report",        sub: "1 week before Â· 1 hour before Â· ~8:30am ET" },
+  { key: "jobsReport",  label: "Jobs report (NFP)", sub: "1 week before Â· 1 hour before Â· ~8:30am ET" },
+  { key: "pceRelease",  label: "PCE report",        sub: "1 week before Â· 1 hour before Â· ~8:30am ET" },
 ];
 
 interface Props {
@@ -90,3 +90,4 @@ export default function NotificationsCard({ user, canEdit, prefs, onToggle, onLo
     </div>
   );
 }
+
