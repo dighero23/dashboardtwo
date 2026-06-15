@@ -15,7 +15,18 @@ export async function POST(
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const now = new Date().toISOString();
+
+  // Optional body: { at: ISO string } to backdate the reset
+  let resetAt = new Date().toISOString();
+  try {
+    const body = await _req.json().catch(() => ({}));
+    if (body?.at && !isNaN(new Date(body.at).getTime())) {
+      const candidate = new Date(body.at);
+      // Reject future times
+      if (candidate <= new Date()) resetAt = candidate.toISOString();
+    }
+  } catch { /* no body is fine */ }
+
   const db = createAdminClient();
 
   // Fetch timer to get type/name for the log entry
@@ -30,7 +41,7 @@ export async function POST(
   // Update timer
   const { data: updated, error: updateErr } = await db
     .from("baby_timers")
-    .update({ last_reset_at: now, last_reset_by: user.id, alert_sent: false })
+    .update({ last_reset_at: resetAt, last_reset_by: user.id, alert_sent: false })
     .eq("id", id)
     .select()
     .single();
@@ -42,7 +53,7 @@ export async function POST(
     timer_id:  id,
     type:      timer.type,
     name:      timer.name,
-    logged_at: now,
+    logged_at: resetAt,
     logged_by: user.id,
   });
 

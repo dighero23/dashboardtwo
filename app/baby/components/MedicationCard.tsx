@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pill, RotateCcw, Check, Pencil, Trash2, X } from "lucide-react";
+import { Pill, RotateCcw, Check, Pencil, Trash2, X, Clock } from "lucide-react";
 import type { BabyTimer } from "@/lib/baby/types";
 
 interface Props {
@@ -27,8 +27,8 @@ function useElapsed(lastResetAt: string) {
 function fmtElapsed(secs: number): string {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) return `${h}h ${m}min`;
-  if (m > 0) return `${m}min`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
   return `${secs}s`;
 }
 
@@ -39,52 +39,86 @@ function fmtTime(iso: string): string {
   });
 }
 
-type StatusColor = "green" | "amber" | "red";
+function toLocalTimeInput(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
-function getStatus(elapsedSecs: number, intervalMins: number): StatusColor {
+function localTimeToISO(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+}
+
+type Status = "green" | "amber" | "red";
+
+function getStatus(elapsedSecs: number, intervalMins: number): Status {
   const pct = elapsedSecs / (intervalMins * 60);
   if (pct >= 1) return "red";
   if (pct >= 0.8) return "amber";
   return "green";
 }
 
-const STATUS_STYLES: Record<StatusColor, { ring: string; text: string; bg: string; badge: string }> = {
-  green: {
-    ring:  "border-emerald-500/30",
-    text:  "text-emerald-400",
-    bg:    "bg-emerald-500/8",
-    badge: "bg-emerald-500/20 text-emerald-300",
-  },
-  amber: {
-    ring:  "border-amber-500/40",
-    text:  "text-amber-400",
-    bg:    "bg-amber-500/8",
-    badge: "bg-amber-500/20 text-amber-300",
-  },
-  red: {
-    ring:  "border-red-500/50",
-    text:  "text-red-400",
-    bg:    "bg-red-500/8",
-    badge: "bg-red-500/20 text-red-300",
-  },
-};
+// Small circular ring for medication cards
+function MiniRing({ pct, status }: { pct: number; status: Status }) {
+  const r = 22, cx = 28, cy = 28;
+  const circ = 2 * Math.PI * r;
+  const filled = Math.min(pct, 1) * circ;
+  const strokeColor =
+    status === "red"   ? "#ef4444" :
+    status === "amber" ? "#f59e0b" :
+                         "#10b981";
+  return (
+    <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e293b" strokeWidth="5" />
+      <circle
+        cx={cx} cy={cy} r={r}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeDasharray={`${filled} ${circ}`}
+        style={{ transition: "stroke-dasharray 0.5s ease, stroke 0.5s ease" }}
+      />
+    </svg>
+  );
+}
+
+type Panel = "none" | "manual" | "edit";
 
 export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Props) {
-  const elapsed = useElapsed(timer.last_reset_at);
-  const status  = getStatus(elapsed, timer.interval_minutes);
-  const styles  = STATUS_STYLES[status];
+  const elapsed   = useElapsed(timer.last_reset_at);
+  const status    = getStatus(elapsed, timer.interval_minutes);
   const isOverdue = status === "red";
+  const pct       = elapsed / (timer.interval_minutes * 60);
 
-  const [resetting,    setResetting]    = useState(false);
-  const [editing,      setEditing]      = useState(false);
-  const [confirmDel,   setConfirmDel]   = useState(false);
-  const [nameInput,    setNameInput]    = useState(timer.name ?? "");
-  const [hoursInput,   setHoursInput]   = useState(String(timer.interval_minutes / 60));
+  const [resetting,   setResetting]   = useState(false);
+  const [panel,       setPanel]       = useState<Panel>("none");
+  const [confirmDel,  setConfirmDel]  = useState(false);
+  const [manualTime,  setManualTime]  = useState(toLocalTimeInput(timer.last_reset_at));
+  const [nameInput,   setNameInput]   = useState(timer.name ?? "");
+  const [hoursInput,  setHoursInput]  = useState(String(timer.interval_minutes / 60));
 
-  async function handleReset() {
+  const textColor =
+    status === "red"   ? "text-red-400" :
+    status === "amber" ? "text-amber-400" :
+                         "text-emerald-400";
+
+  const borderColor =
+    status === "red"   ? "border-red-500/30" :
+    status === "amber" ? "border-amber-500/30" :
+                         "border-slate-700/50";
+
+  async function doReset(at?: string) {
     setResetting(true);
     try {
-      await fetch(`/api/baby/timers/${timer.id}/reset`, { method: "POST" });
+      await fetch(`/api/baby/timers/${timer.id}/reset`, {
+        method:  "POST",
+        headers: at ? { "Content-Type": "application/json" } : undefined,
+        body:    at ? JSON.stringify({ at }) : undefined,
+      });
+      setPanel("none");
       onReset();
     } finally {
       setResetting(false);
@@ -101,9 +135,8 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
       body:    JSON.stringify({ name: nameInput.trim(), interval_minutes: mins }),
     });
     if (res.ok) {
-      const updated = await res.json();
-      onEdit(updated);
-      setEditing(false);
+      onEdit(await res.json());
+      setPanel("none");
     }
   }
 
@@ -112,76 +145,139 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
     onDelete(timer.id);
   }
 
-  const intervalLabel = timer.interval_minutes >= 60
+  const intervalLabel = timer.interval_minutes % 60 === 0
     ? `${timer.interval_minutes / 60}h`
     : `${timer.interval_minutes}min`;
 
   return (
-    <div className={`rounded-2xl border ${styles.ring} bg-slate-800/60 p-4`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-violet-500/15 border border-violet-500/30">
-            <Pill className="w-3.5 h-3.5 text-violet-400" />
+    <div className={`rounded-2xl border ${borderColor} bg-slate-800/60 overflow-hidden`}>
+      {/* Main row */}
+      <div className="flex items-center gap-3 p-4">
+        {/* Mini ring */}
+        <div className="relative flex-shrink-0 w-14 h-14">
+          <MiniRing pct={pct} status={status} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Pill className="w-4 h-4 text-violet-400" />
           </div>
-          <span className="font-semibold text-white text-sm">{timer.name}</span>
-          {isOverdue && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${styles.badge}`}>
-              OVERDUE
-            </span>
-          )}
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="font-semibold text-white text-sm truncate">{timer.name}</span>
+            {isOverdue && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 shrink-0 animate-pulse">
+                OVERDUE
+              </span>
+            )}
+          </div>
+          <p className={`text-xl font-extrabold tabular-nums leading-none ${textColor}`}>
+            {fmtElapsed(elapsed)}
+            <span className="text-xs font-normal text-slate-500 ml-1">ago</span>
+          </p>
+          <p className="text-slate-500 text-[10px] mt-0.5">
+            Last at {fmtTime(timer.last_reset_at)} · every {intervalLabel}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          {/* Just gave */}
           <button
-            onClick={() => { setEditing((v) => !v); setConfirmDel(false); }}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700/60 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => { setConfirmDel((v) => !v); setEditing(false); }}
-            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
-              confirmDel ? "bg-red-500/20 text-red-400" : "text-slate-500 hover:text-red-400 hover:bg-slate-700/60"
+            onClick={() => doReset()}
+            disabled={resetting}
+            className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+              resetting
+                ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                : status === "red"
+                  ? "bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
+                  : status === "amber"
+                    ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30"
+                    : "bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25"
             }`}
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            {resetting ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            Just gave
           </button>
+
+          {/* Icon row: manual time + edit + delete */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                setManualTime(toLocalTimeInput(new Date().toISOString()));
+                setPanel(panel === "manual" ? "none" : "manual");
+                setConfirmDel(false);
+              }}
+              title="Set time manually"
+              className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                panel === "manual" ? "bg-rose-500/20 text-rose-400" : "text-slate-500 hover:text-slate-300 hover:bg-slate-700/60"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => { setPanel(panel === "edit" ? "none" : "edit"); setConfirmDel(false); }}
+              title="Edit"
+              className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                panel === "edit" ? "bg-violet-500/20 text-violet-400" : "text-slate-500 hover:text-slate-300 hover:bg-slate-700/60"
+              }`}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => { setConfirmDel((v) => !v); setPanel("none"); }}
+              title="Delete"
+              className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                confirmDel ? "bg-red-500/20 text-red-400" : "text-slate-500 hover:text-red-400 hover:bg-slate-700/60"
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Time display */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className={`text-2xl font-bold tabular-nums ${styles.text}`}>{fmtElapsed(elapsed)}</p>
-          <p className="text-slate-400 text-[11px]">ago · last at {fmtTime(timer.last_reset_at)}</p>
-          <p className="text-slate-600 text-[10px]">every {intervalLabel}</p>
+      {/* Manual time panel */}
+      {panel === "manual" && (
+        <div className="px-4 pb-4 pt-0 border-t border-slate-700/40">
+          <p className="text-xs text-slate-400 mb-2 pt-3">¿A qué hora fue? (hoy)</p>
+          <div className="flex gap-2">
+            <input
+              type="time"
+              value={manualTime}
+              onChange={(e) => setManualTime(e.target.value)}
+              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/60"
+            />
+            <button
+              onClick={() => doReset(localTimeToISO(manualTime))}
+              disabled={resetting}
+              className="px-4 py-2 bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg text-sm hover:bg-rose-500/30 transition-colors disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPanel("none")}
+              className="w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleReset}
-          disabled={resetting}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-            resetting
-              ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-              : `${styles.bg} border ${styles.ring} ${styles.text} hover:brightness-110 active:scale-95`
-          }`}
-        >
-          {resetting ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          Just gave
-        </button>
-      </div>
+      )}
 
-      {/* Edit form */}
-      {editing && (
-        <div className="pt-3 border-t border-slate-700/50 space-y-2">
+      {/* Edit panel */}
+      {panel === "edit" && (
+        <div className="px-4 pb-4 pt-0 border-t border-slate-700/40 space-y-2">
+          <p className="text-xs text-slate-400 pt-3">Editar</p>
           <input
             type="text"
-            placeholder="Medication name"
+            placeholder="Nombre"
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/60"
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/60"
           />
           <div className="flex gap-2 items-center">
-            <label className="text-xs text-slate-400 shrink-0">Interval (h)</label>
+            <label className="text-xs text-slate-400 shrink-0">Cada (h)</label>
             <input
               type="number"
               min="0.5"
@@ -189,7 +285,7 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
               step="0.5"
               value={hoursInput}
               onChange={(e) => setHoursInput(e.target.value)}
-              className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/60"
+              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/60"
             />
             <button
               onClick={handleSaveEdit}
@@ -198,8 +294,8 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
               Save
             </button>
             <button
-              onClick={() => setEditing(false)}
-              className="w-7 h-7 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700"
+              onClick={() => setPanel("none")}
+              className="w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -209,21 +305,23 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
 
       {/* Delete confirmation */}
       {confirmDel && (
-        <div className="pt-3 border-t border-slate-700/50 flex items-center justify-between gap-3">
-          <p className="text-xs text-red-400">Delete &ldquo;{timer.name}&rdquo;?</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setConfirmDel(false)}
-              className="text-xs text-slate-400 px-2 py-1 rounded-lg hover:bg-slate-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              className="text-xs text-red-400 bg-red-500/20 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors"
-            >
-              Delete
-            </button>
+        <div className="px-4 pb-4 pt-0 border-t border-slate-700/40">
+          <div className="flex items-center justify-between pt-3 gap-3">
+            <p className="text-xs text-red-400">¿Eliminar &ldquo;{timer.name}&rdquo;?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDel(false)}
+                className="text-xs text-slate-400 px-2 py-1 rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="text-xs text-red-400 bg-red-500/20 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
