@@ -115,10 +115,15 @@ function ArcRing({ pct, status }: { pct: number; status: Status }) {
 type Panel = "none" | "manual" | "settings";
 
 export default function BottleCard({ timer, onReset, onIntervalChange }: Props) {
-  const elapsed  = useElapsed(timer.last_reset_at);
-  const status   = getStatus(elapsed, timer.interval_minutes);
+  // Local reset time — updated immediately from API response so stopwatch
+  // reflects the change without waiting for the parent to reload timers.
+  const [localResetAt, setLocalResetAt] = useState(timer.last_reset_at);
+  useEffect(() => { setLocalResetAt(timer.last_reset_at); }, [timer.last_reset_at]);
+
+  const elapsed   = useElapsed(localResetAt);
+  const status    = getStatus(elapsed, timer.interval_minutes);
   const isOverdue = status === "red";
-  const pct      = elapsed / (timer.interval_minutes * 60);
+  const pct       = elapsed / (timer.interval_minutes * 60);
 
   const [resetting,     setResetting]     = useState(false);
   const [panel,         setPanel]         = useState<Panel>("none");
@@ -138,11 +143,15 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
   async function doReset(at?: string) {
     setResetting(true);
     try {
-      await fetch(`/api/baby/timers/${timer.id}/reset`, {
+      const res = await fetch(`/api/baby/timers/${timer.id}/reset`, {
         method:  "POST",
         headers: at ? { "Content-Type": "application/json" } : undefined,
         body:    at ? JSON.stringify({ at }) : undefined,
       });
+      if (res.ok) {
+        const updated = await res.json();
+        setLocalResetAt(updated.last_reset_at);
+      }
       setPanel("none");
       onReset();
     } finally {
@@ -201,7 +210,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
           </div>
         </div>
         <p className="text-slate-400 text-xs mt-0">
-          Last at <span className="text-slate-300">{fmtTime(timer.last_reset_at)}</span>
+          Last at <span className="text-slate-300">{fmtTime(localResetAt)}</span>
           <span className="text-slate-600 ml-2">· every {intervalLabel}</span>
         </p>
       </div>
@@ -242,7 +251,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {/* Manual time panel */}
       {panel === "manual" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
-          <p className="text-xs text-slate-400 mb-2 pt-3">¿Cuándo fue?</p>
+          <p className="text-xs text-slate-400 mb-2 pt-3">When was it?</p>
           <div className="flex gap-2">
             <input
               type="datetime-local"
