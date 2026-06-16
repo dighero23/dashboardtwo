@@ -252,25 +252,25 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {panel === "manual" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
           <p className="text-xs text-slate-400 mb-2 pt-3">When was it?</p>
-          <div className="flex gap-2">
-            <input
-              type="datetime-local"
-              value={manualTime}
-              onChange={(e) => setManualTime(e.target.value)}
-              className="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-rose-500/60"
-            />
+          <input
+            type="datetime-local"
+            value={manualTime}
+            onChange={(e) => setManualTime(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-rose-500/60 mb-2"
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setPanel("none")}
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
             <button
               onClick={() => doReset(localDateTimeToISO(manualTime))}
               disabled={resetting}
               className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg hover:bg-rose-500/30 transition-colors disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setPanel("none")}
-              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
