@@ -134,7 +134,7 @@ function GrowthCurveChart({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sex, metric]);
 
-  // Baby's actual data points
+  // Baby's actual data points + their percentile
   const dataPoints = useMemo(() => {
     return measurements
       .filter((m) => metric === "weight" ? m.weight_oz != null : m.height_cm != null)
@@ -142,14 +142,20 @@ function GrowthCurveChart({
         const months = ageInMonths(dob, m.measured_on);
         const val = metric === "weight"
           ? (m.weight_oz! * 0.0283495)
-          : m.height_cm!;
+          : Number(m.height_cm);
         const x = toX(months);
         const y = toY(val);
         const inRange = y >= MT && y <= MT + CH;
-        return { x, y, inRange };
+        const pct = calcPercentiles(
+          sex, dob, m.measured_on,
+          metric === "weight" ? m.weight_oz : null,
+          metric === "height" ? m.height_cm : null,
+        );
+        const p = metric === "weight" ? pct.weight : pct.height;
+        return { x, y, inRange, p };
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [measurements, dob, metric]);
+  }, [measurements, dob, metric, sex]);
 
   // Y axis labels
   const yTicks = metric === "weight"
@@ -205,15 +211,27 @@ function GrowthCurveChart({
         );
       })}
 
-      {/* Baby's data points */}
+      {/* Baby's data points + percentile label on the latest */}
       {dataPoints.map((pt, i) => pt.inRange && (
-        <circle key={i} cx={pt.x} cy={pt.y} r={3.5} fill="#818cf8" stroke="#1e293b" strokeWidth={1.5} />
+        <g key={i}>
+          <circle cx={pt.x} cy={pt.y} r={3.5} fill="#818cf8" stroke="#1e293b" strokeWidth={1.5} />
+          {i === 0 && pt.p != null && (
+            <text
+              x={pt.x + 7}
+              y={pt.y < MT + 16 ? pt.y + 13 : pt.y - 5}
+              fontSize={9}
+              fontWeight="bold"
+              fill="#a5b4fc"
+            >
+              P{pt.p}
+            </text>
+          )}
+        </g>
       ))}
 
-      {/* Labels */}
-      <text x={ML + 3} y={MT + 9} fontSize={7} fill="#ef4444" opacity={0.6}>P97</text>
-      <text x={ML + 3} y={toY(50) - 3} fontSize={7} fill="#10b981" opacity={0.7}>P50</text>
-      <text x={ML + 3} y={MT + CH - 4} fontSize={7} fill="#ef4444" opacity={0.6}>P3</text>
+      {/* Curve labels */}
+      <text x={ML + CW - 2} y={MT + 8}  textAnchor="end" fontSize={6} fill="#ef4444" opacity={0.7}>P97</text>
+      <text x={ML + CW - 2} y={MT + CH - 2} textAnchor="end" fontSize={6} fill="#ef4444" opacity={0.7}>P3</text>
       <text x={ML + CW / 2} y={H - 1} textAnchor="middle" fontSize={7} fill="#475569">months</text>
       <text
         x={-MT - CH / 2} y={10}
