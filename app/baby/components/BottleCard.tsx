@@ -203,7 +203,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
         <div className="relative w-[104px] h-[104px]">
           <ArcRing pct={pct} status={status} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-2xl font-extrabold tabular-nums leading-none ${textColor}`}>
+            <span className={`font-extrabold tabular-nums leading-none whitespace-nowrap ${textColor} ${fmtElapsed(elapsed).length > 6 ? "text-lg" : "text-2xl"}`}>
               {fmtElapsed(elapsed)}
             </span>
             <span className="text-[10px] text-slate-500 mt-1">ago</span>
