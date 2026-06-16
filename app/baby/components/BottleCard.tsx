@@ -95,7 +95,7 @@ function ArcRing({ pct, status }: { pct: number; status: Status }) {
                          "drop-shadow(0 0 6px #10b98188)";
 
   return (
-    <svg width="128" height="128" viewBox="0 0 128 128">
+    <svg width="104" height="104" viewBox="0 0 128 128">
       {/* Track */}
       <path d={trackPath} fill="none" stroke="#1e293b" strokeWidth="8" strokeLinecap="round" />
       {/* Fill */}
@@ -173,7 +173,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white tracking-tight">Milk</span>
+          <span className="text-base font-bold text-white tracking-tight">{timer.name}</span>
           {isOverdue && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 animate-pulse">
               OVERDUE
@@ -189,29 +189,29 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       </div>
 
       {/* Arc + time */}
-      <div className="flex flex-col items-center pt-1 pb-3">
-        <div className="relative w-32 h-32">
+      <div className="flex flex-col items-center pt-0.5 pb-2">
+        <div className="relative w-[104px] h-[104px]">
           <ArcRing pct={pct} status={status} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-3xl font-extrabold tabular-nums leading-none ${textColor}`}>
+            <span className={`text-2xl font-extrabold tabular-nums leading-none ${textColor}`}>
               {fmtElapsed(elapsed)}
             </span>
             <span className="text-[10px] text-slate-500 mt-1">ago</span>
           </div>
         </div>
-        <p className="text-slate-400 text-xs mt-0.5">
+        <p className="text-slate-400 text-xs mt-0">
           Last at <span className="text-slate-300">{fmtTime(timer.last_reset_at)}</span>
           <span className="text-slate-600 ml-2">· every {intervalLabel}</span>
         </p>
       </div>
 
       {/* Action buttons */}
-      <div className="px-5 pb-5 space-y-2">
-        {/* Primary: Just fed */}
+      <div className="px-4 pb-4 space-y-1.5">
+        {/* Primary button */}
         <button
           onClick={() => doReset()}
           disabled={resetting}
-          className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+          className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
             resetting
               ? "bg-slate-700 text-slate-500 cursor-not-allowed"
               : status === "red"
@@ -222,7 +222,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
           }`}
         >
           {resetting ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          Just fed
+          {timer.type === "poop" ? "Just poop" : "Just fed"}
         </button>
 
         {/* Secondary: set time manually */}
@@ -231,7 +231,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
             setManualTime(toLocalTimeInput(new Date().toISOString()));
             setPanel(panel === "manual" ? "none" : "manual");
           }}
-          className="w-full py-2 rounded-xl text-xs text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1.5 hover:bg-slate-700/40 transition-colors"
+          className="w-full py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1.5 hover:bg-slate-700/40 transition-colors"
         >
           <Clock className="w-3.5 h-3.5" />
           Set time manually
@@ -240,7 +240,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
 
       {/* Manual time panel */}
       {panel === "manual" && (
-        <div className="px-5 pb-5 pt-0 border-t border-slate-700/50">
+        <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
           <p className="text-xs text-slate-400 mb-2 pt-3">¿A qué hora fue? (hoy)</p>
           <div className="flex gap-2">
             <input
@@ -268,13 +268,12 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
 
       {/* Interval settings panel */}
       {panel === "settings" && (
-        <div className="px-5 pb-5 pt-0 border-t border-slate-700/50">
+        <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
           <p className="text-xs text-slate-400 mb-2 pt-3">Intervalo (horas)</p>
           <div className="flex gap-2">
             <input
               type="number"
               min="0.5"
-              max="24"
               step="0.5"
               value={intervalInput}
               onChange={(e) => setIntervalInput(e.target.value)}

@@ -53,10 +53,10 @@ export async function DELETE(
   const { id } = await params;
   const db = createAdminClient();
 
-  // Prevent deleting the bottle timer
+  // Prevent deleting singleton timers
   const { data: timer } = await db.from("baby_timers").select("type").eq("id", id).single();
-  if (timer?.type === "bottle") {
-    return NextResponse.json({ error: "Cannot delete the bottle timer" }, { status: 400 });
+  if (timer?.type === "bottle" || timer?.type === "poop") {
+    return NextResponse.json({ error: "Cannot delete this timer" }, { status: 400 });
   }
 
   const { error } = await db.from("baby_timers").delete().eq("id", id);

@@ -1,6 +1,6 @@
 export interface BabyTimer {
   id: string;
-  type: "bottle" | "medication";
+  type: "bottle" | "poop" | "medication";
   name: string | null;
   interval_minutes: number;
   last_reset_at: string;
@@ -12,7 +12,7 @@ export interface BabyTimer {
 export interface BabyLogEntry {
   id: string;
   timer_id: string;
-  type: "bottle" | "medication";
+  type: "bottle" | "poop" | "medication";
   name: string | null;
   logged_at: string;
   logged_by: string | null;

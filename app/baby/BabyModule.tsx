@@ -11,6 +11,7 @@ import BottleCard from "./components/BottleCard";
 import MedicationCard from "./components/MedicationCard";
 import BreastfeedingCard from "./components/BreastfeedingCard";
 import DailyHistory from "./components/DailyHistory";
+import DailyTasks from "./components/DailyTasks";
 import AddMedModal from "./components/AddMedModal";
 import type { BabyTimer } from "@/lib/baby/types";
 
@@ -114,6 +115,7 @@ export default function BabyModule() {
   }
 
   const bottleTimer = timers.find((t) => t.type === "bottle");
+  const poopTimer   = timers.find((t) => t.type === "poop");
   const medTimers   = timers.filter((t) => t.type === "medication");
 
   // â”€â”€ Main UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -149,16 +151,27 @@ export default function BabyModule() {
 
       {/* Content */}
       <div className="px-4 max-w-lg mx-auto space-y-4">
-        {/* Bottle card */}
+        {/* Bottle + Poop cards side by side */}
         {loading && !bottleTimer && (
-          <div className="h-52 rounded-2xl bg-slate-800/40 animate-pulse" />
+          <div className="h-44 rounded-2xl bg-slate-800/40 animate-pulse" />
         )}
-        {bottleTimer && (
-          <BottleCard
-            timer={bottleTimer}
-            onReset={handleReset}
-            onIntervalChange={(mins) => handleIntervalChange(bottleTimer.id, mins)}
-          />
+        {(bottleTimer || poopTimer) && (
+          <div className="grid grid-cols-2 gap-3">
+            {bottleTimer && (
+              <BottleCard
+                timer={bottleTimer}
+                onReset={handleReset}
+                onIntervalChange={(mins) => handleIntervalChange(bottleTimer.id, mins)}
+              />
+            )}
+            {poopTimer && (
+              <BottleCard
+                timer={poopTimer}
+                onReset={handleReset}
+                onIntervalChange={(mins) => handleIntervalChange(poopTimer.id, mins)}
+              />
+            )}
+          </div>
         )}
 
         {/* Medication cards */}
@@ -182,6 +195,9 @@ export default function BabyModule() {
 
         {/* Breastfeeding timer */}
         <BreastfeedingCard />
+
+        {/* Daily tasks */}
+        <DailyTasks />
 
         {/* Daily history */}
         <DailyHistory refreshTick={logTick} />
