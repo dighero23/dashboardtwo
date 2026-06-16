@@ -12,6 +12,7 @@ import MedicationCard from "./components/MedicationCard";
 import BreastfeedingCard from "./components/BreastfeedingCard";
 import DailyHistory from "./components/DailyHistory";
 import DailyTasks from "./components/DailyTasks";
+import GrowthTracker from "./components/GrowthTracker";
 import AddMedModal from "./components/AddMedModal";
 import type { BabyTimer } from "@/lib/baby/types";
 
@@ -198,6 +199,9 @@ export default function BabyModule() {
 
         {/* Daily tasks */}
         <DailyTasks />
+
+        {/* Growth tracker */}
+        <GrowthTracker />
 
         {/* Daily history */}
         <DailyHistory refreshTick={logTick} />
