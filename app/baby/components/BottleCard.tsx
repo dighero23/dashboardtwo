@@ -173,7 +173,9 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white tracking-tight">{timer.name}</span>
+          <span className="text-base font-bold text-white tracking-tight">
+          {timer.name || (timer.type === "poop" ? "Poop" : "Milk")}
+        </span>
           {isOverdue && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 animate-pulse">
               OVERDUE
