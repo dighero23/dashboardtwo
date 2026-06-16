@@ -38,18 +38,17 @@ function fmtTime(iso: string): string {
   });
 }
 
-// Returns HH:MM in local time for <input type="time"> default value
-function toLocalTimeInput(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+// Returns "YYYY-MM-DDTHH:MM" in local time for <input type="datetime-local">
+function toLocalDateTimeInput(iso: string): string {
+  const d   = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// Convert HH:MM local time (today) to ISO UTC string
-function localTimeToISO(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.toISOString();
+// Convert "YYYY-MM-DDTHH:MM" (local) to ISO UTC string
+function localDateTimeToISO(dtLocal: string): string {
+  const d = new Date(dtLocal);
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
 }
 
 type Status = "green" | "amber" | "red";
@@ -123,7 +122,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
 
   const [resetting,     setResetting]     = useState(false);
   const [panel,         setPanel]         = useState<Panel>("none");
-  const [manualTime,    setManualTime]    = useState(toLocalTimeInput(timer.last_reset_at));
+  const [manualTime,    setManualTime]    = useState(toLocalDateTimeInput(timer.last_reset_at));
   const [intervalInput, setIntervalInput] = useState(String(timer.interval_minutes / 60));
 
   const textColor =
@@ -230,7 +229,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
         {/* Secondary: set time manually */}
         <button
           onClick={() => {
-            setManualTime(toLocalTimeInput(new Date().toISOString()));
+            setManualTime(toLocalDateTimeInput(new Date().toISOString()));
             setPanel(panel === "manual" ? "none" : "manual");
           }}
           className="w-full py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1.5 hover:bg-slate-700/40 transition-colors"
@@ -243,24 +242,24 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {/* Manual time panel */}
       {panel === "manual" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
-          <p className="text-xs text-slate-400 mb-2 pt-3">¿A qué hora fue? (hoy)</p>
+          <p className="text-xs text-slate-400 mb-2 pt-3">¿Cuándo fue?</p>
           <div className="flex gap-2">
             <input
-              type="time"
+              type="datetime-local"
               value={manualTime}
               onChange={(e) => setManualTime(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/60"
+              className="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-rose-500/60"
             />
             <button
-              onClick={() => doReset(localTimeToISO(manualTime))}
+              onClick={() => doReset(localDateTimeToISO(manualTime))}
               disabled={resetting}
-              className="px-4 py-2 bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg text-sm hover:bg-rose-500/30 transition-colors disabled:opacity-50"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg hover:bg-rose-500/30 transition-colors disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPanel("none")}
-              className="w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -279,17 +278,17 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
               step="0.5"
               value={intervalInput}
               onChange={(e) => setIntervalInput(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/60"
+              className="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/60"
             />
             <button
               onClick={handleSaveInterval}
-              className="px-4 py-2 bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg text-sm hover:bg-rose-500/30 transition-colors"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg hover:bg-rose-500/30 transition-colors"
             >
-              Save
+              <Check className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPanel("none")}
-              className="w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
