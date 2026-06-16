@@ -49,6 +49,83 @@ function todayISO(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
+// ---- Algorithmic growth summary (Spanish, no AI) ----------------------------
+
+function buildGrowthSummary(
+  measurements: GrowthMeasurement[],
+  profile: BabyProfile,
+): string {
+  if (!measurements.length || !profile.date_of_birth || !profile.sex) return "";
+
+  const latest = measurements[0];
+  const prev   = measurements[1] ?? null;
+
+  const totalMonths = ageInMonths(profile.date_of_birth, latest.measured_on);
+  const years  = Math.floor(totalMonths / 12);
+  const mos    = totalMonths % 12;
+  const ageStr =
+    years > 0 && mos > 0
+      ? `${years} año${years > 1 ? "s" : ""} y ${mos} mes${mos !== 1 ? "es" : ""}`
+    : years > 0
+      ? `${years} año${years > 1 ? "s" : ""}`
+    : totalMonths === 0
+      ? "recién nacido"
+      : `${totalMonths} mes${totalMonths !== 1 ? "es" : ""}`;
+
+  const pct = calcPercentiles(
+    profile.sex!, profile.date_of_birth!, latest.measured_on,
+    latest.weight_oz, latest.height_cm,
+  );
+
+  const interp = (p: number) =>
+    p <  3  ? "por debajo del límite inferior — consultar al pediatra" :
+    p < 15  ? "en el rango bajo, pero dentro de lo normal" :
+    p <= 85 ? "dentro del rango normal" :
+    p <= 97 ? "en el rango alto, pero dentro de lo normal" :
+              "por encima del límite superior — consultar al pediatra";
+
+  const lines: string[] = [
+    `Última medición: ${fmtDate(latest.measured_on)} (${ageStr}).`,
+  ];
+
+  if (latest.weight_oz != null && pct.weight != null)
+    lines.push(`Peso: ${ozToDisplay(latest.weight_oz)} (P${pct.weight}) — ${interp(pct.weight)}.`);
+
+  if (latest.height_cm != null && pct.height != null)
+    lines.push(`Talla: ${Number(latest.height_cm).toFixed(1)} cm (P${pct.height}) — ${interp(pct.height)}.`);
+
+  if (pct.weight != null && pct.height != null) {
+    const diff = pct.weight - pct.height;
+    if (Math.abs(diff) <= 15)
+      lines.push("Peso y talla son proporcionales entre sí.");
+    else if (diff > 0)
+      lines.push("El peso está relativamente por encima de la talla — puede ser normal en esta etapa.");
+    else
+      lines.push("La talla está relativamente por encima del peso — puede ser normal en esta etapa.");
+  }
+
+  if (prev) {
+    const diffs: string[] = [];
+    if (latest.weight_oz != null && prev.weight_oz != null) {
+      const d  = latest.weight_oz - prev.weight_oz;
+      const lb = Math.floor(Math.abs(d) / 16);
+      const oz = Math.abs(d) % 16;
+      const s  = lb === 0 ? `${d >= 0 ? "+" : "-"}${oz} oz`
+               : oz === 0 ? `${d >= 0 ? "+" : ""}${d >= 0 ? lb : -lb} lb`
+               : `${d >= 0 ? "+" : ""}${d >= 0 ? lb : -lb} lb ${oz} oz`;
+      diffs.push(`peso ${s}`);
+    }
+    if (latest.height_cm != null && prev.height_cm != null) {
+      const d = Number(latest.height_cm) - Number(prev.height_cm);
+      diffs.push(`talla ${d >= 0 ? "+" : ""}${d.toFixed(1)} cm`);
+    }
+    if (diffs.length)
+      lines.push(`Desde la medición anterior: ${diffs.join(", ")}.`);
+  }
+
+  return lines.join("\n");
+}
+
 // ---- Percentile badge -------------------------------------------------------
 
 function PctBadge({ p, label }: { p: number; label: string }) {
@@ -219,7 +296,7 @@ function GrowthCurveChart({
             <text
               x={pt.x + 7}
               y={pt.y < MT + 16 ? pt.y + 13 : pt.y - 5}
-              fontSize={9}
+              fontSize={12}
               fontWeight="bold"
               fill="#a5b4fc"
             >
@@ -533,6 +610,11 @@ export default function GrowthTracker() {
     );
   }, [canShowPercentiles, latest, profile]);
 
+  const growthSummary = useMemo(() => {
+    if (!canShowPercentiles || !measurements.length) return "";
+    return buildGrowthSummary(measurements, profile!);
+  }, [measurements, profile, canShowPercentiles]);
+
   // Sparkline data (chronological order for charts)
   const chronological = [...measurements].sort((a, b) => a.measured_on.localeCompare(b.measured_on));
   const weightPoints  = chronological.filter((m) => m.weight_oz != null).map((m) => m.weight_oz! * 0.0283495);
@@ -670,6 +752,13 @@ export default function GrowthTracker() {
               <span className="text-emerald-400/70">— P50</span>
               <span><span className="text-indigo-400">●</span> Baby</span>
             </div>
+            {growthSummary && (
+              <div className="bg-slate-900/50 rounded-xl px-3 py-2.5 mt-1">
+                <p className="text-[10px] text-slate-400 whitespace-pre-line leading-[1.6]">
+                  {growthSummary}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
