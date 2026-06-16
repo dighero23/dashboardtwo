@@ -1,3 +1,8 @@
+-- Extend type check constraint to allow 'poop'
+ALTER TABLE baby_timers DROP CONSTRAINT IF EXISTS baby_timers_type_check;
+ALTER TABLE baby_timers ADD CONSTRAINT baby_timers_type_check
+  CHECK (type IN ('bottle', 'poop', 'medication'));
+
 -- Seed poop timer (run once; safe to re-run)
 INSERT INTO baby_timers (type, name, interval_minutes)
 SELECT 'poop', 'Poop', 2880
