@@ -279,7 +279,7 @@ export default function BottleCard({ timer, onReset, onIntervalChange }: Props) 
       {/* Interval settings panel */}
       {panel === "settings" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
-          <p className="text-xs text-slate-400 mb-2 pt-3">Intervalo (horas)</p>
+          <p className="text-xs text-slate-400 mb-2 pt-3">Interval (hours)</p>
           <div className="flex gap-2">
             <input
               type="number"

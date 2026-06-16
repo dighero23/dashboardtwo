@@ -39,16 +39,15 @@ function fmtTime(iso: string): string {
   });
 }
 
-function toLocalTimeInput(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function toLocalDateTimeInput(iso: string): string {
+  const d   = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function localTimeToISO(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.toISOString();
+function localDateTimeToISO(dtLocal: string): string {
+  const d = new Date(dtLocal);
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
 }
 
 type Status = "green" | "amber" | "red";
@@ -88,7 +87,10 @@ function MiniRing({ pct, status }: { pct: number; status: Status }) {
 type Panel = "none" | "manual" | "edit";
 
 export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Props) {
-  const elapsed   = useElapsed(timer.last_reset_at);
+  const [localResetAt, setLocalResetAt] = useState(timer.last_reset_at);
+  useEffect(() => { setLocalResetAt(timer.last_reset_at); }, [timer.last_reset_at]);
+
+  const elapsed   = useElapsed(localResetAt);
   const status    = getStatus(elapsed, timer.interval_minutes);
   const isOverdue = status === "red";
   const pct       = elapsed / (timer.interval_minutes * 60);
@@ -96,7 +98,7 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
   const [resetting,   setResetting]   = useState(false);
   const [panel,       setPanel]       = useState<Panel>("none");
   const [confirmDel,  setConfirmDel]  = useState(false);
-  const [manualTime,  setManualTime]  = useState(toLocalTimeInput(timer.last_reset_at));
+  const [manualTime,  setManualTime]  = useState(toLocalDateTimeInput(timer.last_reset_at));
   const [nameInput,   setNameInput]   = useState(timer.name ?? "");
   const [hoursInput,  setHoursInput]  = useState(String(timer.interval_minutes / 60));
 
@@ -113,11 +115,15 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
   async function doReset(at?: string) {
     setResetting(true);
     try {
-      await fetch(`/api/baby/timers/${timer.id}/reset`, {
+      const res = await fetch(`/api/baby/timers/${timer.id}/reset`, {
         method:  "POST",
         headers: at ? { "Content-Type": "application/json" } : undefined,
         body:    at ? JSON.stringify({ at }) : undefined,
       });
+      if (res.ok) {
+        const updated = await res.json();
+        setLocalResetAt(updated.last_reset_at);
+      }
       setPanel("none");
       onReset();
     } finally {
@@ -176,7 +182,7 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
             <span className="text-xs font-normal text-slate-500 ml-1">ago</span>
           </p>
           <p className="text-slate-500 text-[10px] mt-0.5">
-            Last at {fmtTime(timer.last_reset_at)} · every {intervalLabel}
+            Last at {fmtTime(localResetAt)} · every {intervalLabel}
           </p>
         </div>
 
@@ -204,7 +210,7 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
-                setManualTime(toLocalTimeInput(new Date().toISOString()));
+                setManualTime(toLocalDateTimeInput(new Date().toISOString()));
                 setPanel(panel === "manual" ? "none" : "manual");
                 setConfirmDel(false);
               }}
@@ -240,26 +246,26 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
       {/* Manual time panel */}
       {panel === "manual" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/40">
-          <p className="text-xs text-slate-400 mb-2 pt-3">¿A qué hora fue? (hoy)</p>
-          <div className="flex gap-2">
-            <input
-              type="time"
-              value={manualTime}
-              onChange={(e) => setManualTime(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/60"
-            />
-            <button
-              onClick={() => doReset(localTimeToISO(manualTime))}
-              disabled={resetting}
-              className="px-4 py-2 bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg text-sm hover:bg-rose-500/30 transition-colors disabled:opacity-50"
-            >
-              <Check className="w-4 h-4" />
-            </button>
+          <p className="text-xs text-slate-400 mb-2 pt-3">When was it?</p>
+          <input
+            type="datetime-local"
+            value={manualTime}
+            onChange={(e) => setManualTime(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-white text-xs focus:outline-none focus:border-rose-500/60 mb-2"
+          />
+          <div className="flex gap-2 justify-end">
             <button
               onClick={() => setPanel("none")}
-              className="w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-slate-700/50 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => doReset(localDateTimeToISO(manualTime))}
+              disabled={resetting}
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-lg hover:bg-rose-500/30 transition-colors disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -268,16 +274,16 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
       {/* Edit panel */}
       {panel === "edit" && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/40 space-y-2">
-          <p className="text-xs text-slate-400 pt-3">Editar</p>
+          <p className="text-xs text-slate-400 pt-3">Edit</p>
           <input
             type="text"
-            placeholder="Nombre"
+            placeholder="Name"
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/60"
           />
           <div className="flex gap-2 items-center">
-            <label className="text-xs text-slate-400 shrink-0">Cada (h)</label>
+            <label className="text-xs text-slate-400 shrink-0">Every (h)</label>
             <input
               type="number"
               min="0.5"
@@ -307,7 +313,7 @@ export default function MedicationCard({ timer, onReset, onEdit, onDelete }: Pro
       {confirmDel && (
         <div className="px-4 pb-4 pt-0 border-t border-slate-700/40">
           <div className="flex items-center justify-between pt-3 gap-3">
-            <p className="text-xs text-red-400">¿Eliminar &ldquo;{timer.name}&rdquo;?</p>
+            <p className="text-xs text-red-400">Delete &ldquo;{timer.name}&rdquo;?</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDel(false)}
